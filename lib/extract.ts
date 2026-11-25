@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { extractText, getDocumentProxy } from "unpdf";
 import type { Extraction, Field } from "./types";
+import { extractWithGroq, hasGroq } from "./groq";
 
 const FieldSchema = z.object({
   value: z.string().nullable(),
@@ -77,10 +78,14 @@ function find(text: string, re: RegExp, group = 1): Field {
   return { value: m[group].trim(), fragment: lineOf(text, m.index), confidence: "high" };
 }
 
-export async function extractLocally(pdf: Buffer): Promise<Extraction> {
+export async function pdfText(pdf: Buffer): Promise<string> {
   const doc = await getDocumentProxy(new Uint8Array(pdf));
   const { text: pages } = await extractText(doc, { mergePages: false });
-  const text = (pages as string[]).join("\n");
+  return (pages as string[]).join("\n");
+}
+
+export async function extractLocally(pdf: Buffer, preText?: string): Promise<Extraction> {
+  const text = preText ?? (await pdfText(pdf));
   const readable = text.replace(/\s/g, "").length > 40;
 
   // Пропускаем строку покупателя, чтобы не взять его БИН
@@ -99,19 +104,36 @@ export async function extractLocally(pdf: Buffer): Promise<Extraction> {
     change_request_text: /нов(ым|ые|ых)\s+реквизит/i.test(text) ? lineOf(text, text.search(/нов(ым|ые|ых)\s+реквизит/i)) : null,
   };
   if (res.amount.value) res.amount.value = res.amount.value.replace(/\s/g, "");
-  if (!readable) res.warning = "В PDF нет текстового слоя (скан). Для распознавания сканов нужен режим Claude (ANTHROPIC_API_KEY).";
+  if (!readable) res.warning = "В PDF нет текстового слоя (скан).";
   return res;
 }
 
 export async function extract(pdf: Buffer): Promise<Extraction> {
+  // 1. Groq: локально берём текст PDF, ИИ извлекает реквизиты.
+  if (hasGroq()) {
+    const text = await pdfText(pdf).catch(() => "");
+    if (text.replace(/\s/g, "").length > 40) {
+      try {
+        return await extractWithGroq(text);
+      } catch (e) {
+        const local = await extractLocally(pdf, text);
+        local.warning = `ИИ недоступен (${(e as Error).message}). Использован офлайн-разбор.`;
+        return local;
+      }
+    }
+    // Скан без текста: gpt-oss работает только с текстом. Честно отдаём офлайн-результат.
+    return extractLocally(pdf, text);
+  }
+  // 2. Claude, если задан ключ Anthropic (умеет читать сканы).
   if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) {
     try {
       return await extractWithClaude(pdf);
     } catch (e) {
       const local = await extractLocally(pdf);
-      local.warning = `Claude недоступен (${(e as Error).message}). Использован локальный разбор.` + (local.warning ? " " + local.warning : "");
+      local.warning = `ИИ недоступен (${(e as Error).message}). Использован офлайн-разбор.` + (local.warning ? " " + local.warning : "");
       return local;
     }
   }
+  // 3. Офлайн: текстовый слой PDF + регулярные выражения.
   return extractLocally(pdf);
 }

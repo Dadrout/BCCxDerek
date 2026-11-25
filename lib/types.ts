@@ -2,7 +2,8 @@ export type Confidence = "high" | "medium" | "low";
 export type Field = { value: string | null; fragment: string | null; confidence: Confidence };
 
 export type Extraction = {
-  mode: "claude" | "local";
+  mode: "groq" | "claude" | "local";
+  model?: string;
   readable: boolean;
   supplier_name: Field;
   bin: Field;

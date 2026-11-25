@@ -33,6 +33,17 @@ export type Dict = {
   invoiceNamed: (n: string) => string;
   modeClaude: string;
   modeLocal: string;
+  modeGroq: (m: string) => string;
+  stepRead: string;
+  stepReadOffline: string;
+  stepCompare: string;
+  stepExplain: string;
+  aiTitle: string;
+  aiModel: (m: string) => string;
+  aiThinking: string;
+  aiOffline: string;
+  aiFailed: string;
+  loadingRead: string;
   legendMatch: string;
   legendMismatch: string;
   legendFraud: string;
@@ -156,7 +167,18 @@ const ru: Dict = {
   invoice: "Счёт",
   invoiceNamed: (n) => `Счёт: ${n}`,
   modeClaude: "Распознано Claude",
-  modeLocal: "Локальный разбор текста PDF",
+  modeLocal: "Офлайн-разбор текста PDF",
+  modeGroq: m => `Прочитано ИИ: ${m}`,
+  stepRead: "ИИ прочитал счёт",
+  stepReadOffline: "Офлайн-разбор счёта",
+  stepCompare: "Сверка с карточкой",
+  stepExplain: "ИИ объяснил риск",
+  aiTitle: "Вывод ИИ",
+  aiModel: m => `Модель ${m} на Groq. Решение принимает сверка, ИИ его объясняет.`,
+  aiThinking: "ИИ формулирует вывод…",
+  aiOffline: "ИИ не подключён: добавьте GROQ_API_KEY. Сверка работает и без него.",
+  aiFailed: "ИИ сейчас недоступен. Вердикт выше получен сверкой и остаётся в силе.",
+  loadingRead: "ИИ читает счёт и извлекает реквизиты…",
   legendMatch: "IBAN совпал с карточкой",
   legendMismatch: "IBAN не совпал с карточкой",
   legendFraud: "Признаки подмены",
@@ -236,8 +258,8 @@ const ru: Dict = {
     not_pdf: "Это не PDF. Загрузите счёт в формате PDF.",
     generic: "Не удалось проверить счёт. Попробуйте загрузить его ещё раз.",
   },
-  warnNoText: "В PDF нет текстового слоя, это скан. Чтобы распознавать сканы, нужен режим Claude (ANTHROPIC_API_KEY).",
-  warnClaude: "Claude недоступен, использован локальный разбор.",
+  warnNoText: "В PDF нет текстового слоя, это скан. ИИ читает только текст, поэтому введите реквизиты вручную.",
+  warnClaude: "ИИ недоступен, использован офлайн-разбор.",
   v: {
     unreadableHead: "Не удалось уверенно прочитать реквизиты",
     notReadable: "Документ не читается: размытый скан или нет текста.",
@@ -292,7 +314,18 @@ const kk: Dict = {
   invoice: "Шот",
   invoiceNamed: (n) => `Шот: ${n}`,
   modeClaude: "Claude таныды",
-  modeLocal: "PDF мәтінін жергілікті талдау",
+  modeLocal: "PDF мәтінін офлайн талдау",
+  modeGroq: m => `ЖИ оқыды: ${m}`,
+  stepRead: "ЖИ шотты оқыды",
+  stepReadOffline: "Шотты офлайн талдау",
+  stepCompare: "Карточкамен салыстыру",
+  stepExplain: "ЖИ тәуекелді түсіндірді",
+  aiTitle: "ЖИ қорытындысы",
+  aiModel: m => `Groq-тағы ${m} моделі. Шешімді салыстыру қабылдайды, ЖИ оны түсіндіреді.`,
+  aiThinking: "ЖИ қорытынды жазып жатыр…",
+  aiOffline: "ЖИ қосылмаған: GROQ_API_KEY қосыңыз. Салыстыру онсыз да жұмыс істейді.",
+  aiFailed: "ЖИ қазір қолжетімсіз. Жоғарыдағы шешім салыстыру арқылы алынды және күшінде.",
+  loadingRead: "ЖИ шотты оқып, деректемелерді алып жатыр…",
   legendMatch: "IBAN карточкамен сәйкес",
   legendMismatch: "IBAN карточкамен сәйкес емес",
   legendFraud: "Ауыстыру белгілері",
@@ -372,8 +405,8 @@ const kk: Dict = {
     not_pdf: "Бұл PDF емес. Шотты PDF форматында жүктеңіз.",
     generic: "Шотты тексеру мүмкін болмады. Қайта жүктеп көріңіз.",
   },
-  warnNoText: "PDF-те мәтін қабаты жоқ, бұл скан. Скандарды тану үшін Claude режимі керек (ANTHROPIC_API_KEY).",
-  warnClaude: "Claude қолжетімсіз, жергілікті талдау қолданылды.",
+  warnNoText: "PDF-те мәтін қабаты жоқ, бұл скан. ЖИ тек мәтінді оқиды, сондықтан деректемелерді қолмен енгізіңіз.",
+  warnClaude: "ЖИ қолжетімсіз, офлайн талдау қолданылды.",
   v: {
     unreadableHead: "Деректемелерді сенімді оқу мүмкін болмады",
     notReadable: "Құжат оқылмайды: скан бұлыңғыр немесе мәтін жоқ.",
@@ -428,7 +461,18 @@ const en: Dict = {
   invoice: "Invoice",
   invoiceNamed: (n) => `Invoice: ${n}`,
   modeClaude: "Read by Claude",
-  modeLocal: "Local PDF text parsing",
+  modeLocal: "Offline PDF text parsing",
+  modeGroq: m => `Read by AI: ${m}`,
+  stepRead: "AI read the invoice",
+  stepReadOffline: "Offline invoice parsing",
+  stepCompare: "Compared with the card",
+  stepExplain: "AI explained the risk",
+  aiTitle: "AI summary",
+  aiModel: m => `${m} on Groq. The check makes the decision, the AI explains it.`,
+  aiThinking: "The AI is writing a summary…",
+  aiOffline: "AI isn't connected: add GROQ_API_KEY. The check works without it.",
+  aiFailed: "The AI is unavailable right now. The verdict above comes from the check and still stands.",
+  loadingRead: "The AI is reading the invoice and extracting the details…",
   legendMatch: "IBAN matches the card",
   legendMismatch: "IBAN doesn't match the card",
   legendFraud: "Signs of tampering",
@@ -508,8 +552,8 @@ const en: Dict = {
     not_pdf: "This isn't a PDF. Upload the invoice as a PDF.",
     generic: "Couldn't check the invoice. Try uploading it again.",
   },
-  warnNoText: "The PDF has no text layer, it's a scan. Reading scans needs Claude mode (ANTHROPIC_API_KEY).",
-  warnClaude: "Claude is unavailable, local parsing was used.",
+  warnNoText: "The PDF has no text layer, it's a scan. The AI reads text only, so enter the details manually.",
+  warnClaude: "AI is unavailable, offline parsing was used.",
   v: {
     unreadableHead: "Couldn't read the bank details reliably",
     notReadable: "The document can't be read: blurry scan or no text.",

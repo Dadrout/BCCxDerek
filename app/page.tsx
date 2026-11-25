@@ -17,11 +17,11 @@ type LogEntry = { time: string; render: (t: Dict) => string };
 type Doc = { kind: "sample"; file: string } | { kind: "upload"; name: string } | null;
 
 // Один цвет на статус. Полоса вердикта залита этим цветом целиком.
-const STATUS_STYLE: Record<Status, { band: string; flag: string }> = {
-  match: { band: "bg-go", flag: "bg-go text-white" },
-  mismatch: { band: "bg-stop", flag: "bg-stop text-white" },
-  unreadable: { band: "bg-hold", flag: "bg-hold text-white" },
-  new_supplier: { band: "bg-new", flag: "bg-new text-white" },
+const STATUS_STYLE: Record<Status, { band: string; flag: string; wash: string; accent: string }> = {
+  match: { band: "bg-go", flag: "bg-go text-white", wash: "bg-go-wash", accent: "border-go" },
+  mismatch: { band: "bg-stop", flag: "bg-stop text-white", wash: "bg-stop-wash", accent: "border-stop" },
+  unreadable: { band: "bg-hold", flag: "bg-hold text-white", wash: "bg-hold-wash", accent: "border-hold" },
+  new_supplier: { band: "bg-new", flag: "bg-new text-white", wash: "bg-new-wash", accent: "border-new" },
 };
 const LOCALE: Record<Lang, string> = { kk: "ru-RU", ru: "ru-RU", en: "en-GB" };
 const MANUAL = "manual";
@@ -41,6 +41,8 @@ export default function Home() {
   const [contactOpen, setContactOpen] = useState(false);
   const [manualIban, setManualIban] = useState("");
   const [manualBin, setManualBin] = useState("");
+  const [ai, setAi] = useState<Partial<Record<Lang, { state: "loading" | "done" | "offline" | "failed"; text?: string }>>>({});
+  const [aiModel, setAiModel] = useState<string>("gpt-oss-120b");
   const fileInput = useRef<HTMLInputElement>(null);
   const t = DICT[lang];
 
@@ -65,11 +67,28 @@ export default function Home() {
   // Сервер отдаёт результат на русском. Текст вердикта пересчитывается на выбранном языке.
   const view = useMemo(() => (res ? check(res.extraction, lang) : null), [res, lang]);
 
+  // ИИ объясняет результат сверки на выбранном языке. Ответ кешируется по языку.
+  useEffect(() => {
+    if (!res || ai[lang]) return;
+    let cancelled = false;
+    setAi((a) => ({ ...a, [lang]: { state: "loading" } }));
+    fetch("/api/explain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ extraction: res.extraction, lang }) })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        if (j.model) setAiModel(String(j.model).replace(/^openai\//, ""));
+        setAi((a) => ({ ...a, [lang]: j.text ? { state: "done", text: j.text } : { state: j.code === "offline" ? "offline" : "failed" } }));
+      })
+      .catch(() => !cancelled && setAi((a) => ({ ...a, [lang]: { state: "failed" } })));
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [res, lang]);
+
   const addLog = (render: (t: Dict) => string) => setLog((l) => [{ time: now(), render }, ...l]);
   const docName = (d: Doc, tt: Dict) => (!d ? "" : d.kind === "sample" ? tt.samples[d.file]?.title ?? d.file : d.name);
 
   async function run(body: FormData, url: string, next: Doc) {
-    setLoading(true); setError(null); setRes(null); setPay("draft"); setLog([]); setManualIban(""); setManualBin("");
+    setLoading(true); setError(null); setRes(null); setAi({}); setPay("draft"); setLog([]); setManualIban(""); setManualBin("");
     setSrc(url); setDoc(next);
     try {
       const r = await fetch("/api/check", { method: "POST", body });
@@ -77,7 +96,8 @@ export default function Home() {
       if (!r.ok) throw new Error(j.code || "generic");
       setRes(j);
       const status = j.status as Status, mode = j.extraction.mode;
-      addLog((tt) => tt.logLoaded(docName(next, tt), mode === "claude" ? "Claude" : tt.modeLocal.charAt(0).toLowerCase() + tt.modeLocal.slice(1), tt.status[status].toLowerCase()));
+      const model = String(j.extraction.model ?? "").replace(/^openai\//, "");
+      addLog((tt) => tt.logLoaded(docName(next, tt), mode === "groq" ? tt.modeGroq(model).charAt(0).toLowerCase() + tt.modeGroq(model).slice(1) : mode === "claude" ? "Claude" : tt.modeLocal.charAt(0).toLowerCase() + tt.modeLocal.slice(1), tt.status[status].toLowerCase()));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -100,6 +120,7 @@ export default function Home() {
     if (manualIban) ex.iban = { value: manualIban, fragment: MANUAL, confidence: "high" };
     if (manualBin) ex.bin = { value: manualBin, fragment: MANUAL, confidence: "high" };
     const r = check(ex);
+    setAi({});
     setRes(r);
     addLog((tt) => tt.logManual(tt.status[r.status].toLowerCase()));
   }
@@ -115,7 +136,7 @@ export default function Home() {
   const st = view ? STATUS_STYLE[view.status] : null;
   const ex = view?.extraction;
   const money = (v: string | null) => (v ? Number(v.replace(/\D/g, "")).toLocaleString(LOCALE[lang]) + " ₸" : "—");
-  const warning = ex?.warning ? [ex.warning.includes("Claude недоступен") && t.warnClaude, ex.warning.includes("текстового слоя") && t.warnNoText].filter(Boolean).join(" ") || ex.warning : null;
+  const warning = ex?.warning ? [ex.warning.includes("ИИ недоступен") && t.warnClaude, ex.warning.includes("текстового слоя") && t.warnNoText].filter(Boolean).join(" ") || ex.warning : null;
   const sup = view?.supplier ? localSupplier(view.supplier, t) : null;
 
   return (
@@ -184,7 +205,7 @@ export default function Home() {
           <section aria-label={t.invoice} className="lg:sticky lg:top-6">
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-[15px] font-medium">{doc ? t.invoiceNamed(docName(doc, t)) : t.invoice}</h2>
-              {ex && <span className="text-[13px] text-ink-3">{ex.mode === "claude" ? t.modeClaude : t.modeLocal}</span>}
+              {ex && <span className={`text-[13px] ${ex.mode === "local" ? "text-ink-3" : "font-medium text-ink-2"}`}>{ex.mode === "groq" ? t.modeGroq(String(ex.model ?? "").replace(/^openai\//, "")) : ex.mode === "claude" ? t.modeClaude : t.modeLocal}</span>}
             </div>
             <PdfView src={src} highlights={highlights} emptyText={t.pdfEmpty} />
             {highlights.length > 0 && (
@@ -200,7 +221,7 @@ export default function Home() {
           <section aria-label={t.result} aria-live="polite" className="overflow-hidden rounded-[10px] bg-sheet shadow-[0_1px_2px_rgba(21,32,43,0.08),0_8px_24px_-12px_rgba(21,32,43,0.18)]">
             {loading && (
               <div className="p-6 sm:p-8">
-                <p className="text-[15px] text-ink-2">{t.loading}</p>
+                <p className="text-[15px] text-ink-2">{t.loadingRead}</p>
                 <EmptyCells pulse />
               </div>
             )}
@@ -228,6 +249,12 @@ export default function Home() {
                   <h2 className="mt-1 max-w-[32ch] text-[24px] font-semibold leading-[1.2] tracking-[-0.01em] sm:text-[26px]">{view.headline}</h2>
                 </div>
 
+                <ol className="flex flex-wrap gap-x-6 gap-y-1.5 border-b border-rule px-5 py-3 text-[13px] sm:px-8" aria-label={t.result}>
+                  <Step done muted={ex.mode === "local"} n={1} text={ex.mode === "local" ? t.stepReadOffline : t.stepRead} />
+                  <Step done n={2} text={t.stepCompare} />
+                  <Step done={ai[lang]?.state === "done"} busy={ai[lang]?.state === "loading"} muted={ai[lang]?.state === "offline" || ai[lang]?.state === "failed"} n={3} text={t.stepExplain} />
+                </ol>
+
                 <div className="px-5 py-6 sm:px-8">
                   {(view.iban.document || view.iban.reference) && (
                     <div className="space-y-3">
@@ -240,6 +267,8 @@ export default function Home() {
                       )}
                     </div>
                   )}
+
+                  <AiSummary t={t} state={ai[lang]} model={aiModel} wash={st.wash} accent={st.accent} />
 
                   <ul className="mt-6 space-y-2.5 text-[15px] leading-relaxed">
                     {view.reasons.map((r, i) => (
@@ -420,6 +449,39 @@ export default function Home() {
 function localSupplier(s: SupplierCard, t: Dict) {
   if (s.id === "sup-dala") return t.supplier;
   return { method: s.verificationMethod, by: s.verifiedBy, role: s.contact.role, source: s.contact.source };
+}
+
+function Step({ n, text, done, busy, muted }: { n: number; text: string; done?: boolean; busy?: boolean; muted?: boolean }) {
+  return (
+    <li className={`flex items-center gap-2 ${muted ? "text-ink-3" : "text-ink"}`}>
+      <span aria-hidden className={`flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-semibold ${done ? "bg-ink text-white" : busy ? "animate-pulse bg-rule text-ink" : "border border-rule text-ink-3"}`}>
+        {done ? (
+          <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.5 6.2 5 8.5l4.5-5" /></svg>
+        ) : n}
+      </span>
+      {text}
+    </li>
+  );
+}
+
+function AiSummary({ t, state, model, wash, accent }: { t: Dict; state?: { state: string; text?: string }; model: string; wash: string; accent: string }) {
+  if (!state) return null;
+  if (state.state === "offline" || state.state === "failed")
+    return <p className="mt-6 text-[13px] text-ink-3">{state.state === "offline" ? t.aiOffline : t.aiFailed}</p>;
+  return (
+    <figure className={`mt-6 rounded-r-md border-l-[3px] ${accent} ${wash} px-4 py-3.5`}>
+      <figcaption className="flex items-center gap-2 text-[13px] font-semibold">
+        <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M8 0l1.7 5.1L15 6.8l-5.3 1.7L8 13.6 6.3 8.5 1 6.8l5.3-1.7z" /></svg>
+        {t.aiTitle}
+      </figcaption>
+      {state.state === "loading" ? (
+        <p className="mt-1.5 animate-pulse text-[15px] text-ink-2">{t.aiThinking}</p>
+      ) : (
+        <blockquote className="mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">{state.text}</blockquote>
+      )}
+      <p className="mt-2 text-[12px] text-ink-3">{t.aiModel(model)}</p>
+    </figure>
+  );
 }
 
 function EmptyCells({ pulse }: { pulse?: boolean }) {
