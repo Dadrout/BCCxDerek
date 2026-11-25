@@ -1,8 +1,10 @@
 import type { CheckResult, Extraction } from "./types";
 import { SUPPLIERS, PAYMENT_HISTORY } from "./registry";
+import { DICT, bankName, type Lang } from "./i18n";
 import { normalizeIban, normalizeBin, ibanChecksumOk, bankByIban } from "./iban";
 
-export function check(ex: Extraction): CheckResult {
+export function check(ex: Extraction, lang: Lang = "ru"): CheckResult {
+  const v = DICT[lang].v;
   const bin = normalizeBin(ex.bin.value);
   const nameKey = (ex.supplier_name.value ?? "").toLowerCase().replace(/[^a-zа-яәіңғүұқөһ0-9]/gi, "");
   const supplier =
@@ -41,42 +43,42 @@ export function check(ex: Extraction): CheckResult {
   const unreadable =
     !ex.readable || !docIban || n.hasUnreadable || !checksumOk || ex.iban.confidence === "low";
   if (unreadable) {
-    if (!ex.readable) reasons.push("Документ не читается: размытый скан или нет текста.");
-    if (!docIban) reasons.push("IBAN получателя не найден в документе.");
-    if (n.hasUnreadable) reasons.push("Часть символов IBAN не распознана (отмечены «?»).");
-    if (docIban && !n.hasUnreadable && !checksumOk) reasons.push("Контрольная сумма IBAN не сходится: скорее всего, символ прочитан неверно.");
-    if (ex.iban.confidence === "low" && docIban) reasons.push("Модель не уверена в каждом символе IBAN.");
-    reasons.push("Сверка не выполнена. Загрузите оригинал PDF или введите IBAN вручную посимвольно.");
-    return { ...base, status: "unreadable", headline: "Не удалось уверенно прочитать реквизиты", reasons };
+    if (!ex.readable) reasons.push(v.notReadable);
+    if (!docIban) reasons.push(v.noIban);
+    if (n.hasUnreadable) reasons.push(v.unreadableChars);
+    if (docIban && !n.hasUnreadable && !checksumOk) reasons.push(v.checksum);
+    if (ex.iban.confidence === "low" && docIban) reasons.push(v.lowConfidence);
+    reasons.push(v.notChecked);
+    return { ...base, status: "unreadable", headline: v.unreadableHead, reasons };
   }
 
-  if (n.hadHomoglyphs) reasons.push("В IBAN найдены кириллические буквы, похожие на латинские. Это частый приём подделки.");
+  if (n.hadHomoglyphs) reasons.push(v.homoglyphs);
 
   // 2. Нет подтверждённой записи
   if (!supplier) {
-    reasons.push("Поставщика с таким БИН нет в подтверждённых карточках компании.");
-    reasons.push("Сравнивать не с чем. Перед первым платежом проведите первичную проверку реквизитов по независимому источнику.");
-    reasons.push("Телефон из этого счёта для проверки не используйте.");
-    return { ...base, status: "new_supplier", headline: "Нет подтверждённой записи для сравнения", reasons };
+    reasons.push(v.noSupplier);
+    reasons.push(v.nothingToCompare);
+    reasons.push(v.dontUsePhone);
+    return { ...base, status: "new_supplier", headline: v.newHead, reasons };
   }
 
   // 3. Совпадение
   if (docIban === ref && !n.hadHomoglyphs) {
-    reasons.push(`IBAN совпадает с подтверждённой карточкой от ${supplier.verifiedAt}.`);
-    reasons.push(`На этот счёт уже было ${base.bankSignal.paymentsToThisIban} платежей.`);
+    reasons.push(v.matchCard(supplier.verifiedAt));
+    reasons.push(v.matchPayments(base.bankSignal.paymentsToThisIban));
     if (base.bankSignal.amountVsAvg && base.bankSignal.amountVsAvg > 1.05)
-      reasons.push(`Сумма выше средней на ${Math.round((base.bankSignal.amountVsAvg - 1) * 100)}%, но реквизиты прежние.`);
-    return { ...base, status: "match", headline: "Реквизиты совпадают с подтверждённой карточкой", reasons };
+      reasons.push(v.amountHigher(Math.round((base.bankSignal.amountVsAvg - 1) * 100)));
+    return { ...base, status: "match", headline: v.matchHead, reasons };
   }
 
   // 4. Расхождение
-  reasons.unshift(`IBAN в счёте отличается от подтверждённой карточки (${diffPositions.length} символов).`);
+  reasons.unshift(v.ibanDiffers(diffPositions.length));
   if (base.iban.documentBank && bankByIban(ref!) !== base.iban.documentBank)
-    reasons.push(`Счёт открыт в другом банке: ${base.iban.documentBank} вместо ${bankByIban(ref!) ?? "прежнего"}.`);
-  reasons.push("На этот IBAN компания раньше не платила.");
-  if (ex.change_request_text) reasons.push(`В счёте есть просьба платить по новым реквизитам: «${ex.change_request_text}».`);
+    reasons.push(v.otherBank(bankName(base.iban.documentBank, lang)!, bankName(bankByIban(ref!), lang) ?? v.previous));
+  reasons.push(v.neverPaid);
+  if (ex.change_request_text) reasons.push(v.changeRequest(ex.change_request_text));
   const docPhone = (ex.phone_in_document.value ?? "").replace(/\D/g, "");
   if (docPhone && docPhone !== supplier.contact.phone.replace(/\D/g, ""))
-    reasons.push("Телефон в счёте не совпадает с контактом из договора. Звонить нужно только по сохранённому номеру.");
-  return { ...base, status: "mismatch", headline: "Реквизиты изменились. Этот счёт у поставщика ещё не подтверждён", reasons };
+    reasons.push(v.phoneDiffers);
+  return { ...base, status: "mismatch", headline: v.mismatchHead, reasons };
 }

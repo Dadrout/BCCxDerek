@@ -10,7 +10,7 @@ const COLORS = {
 };
 const norm = (s: string) => s.replace(/\s/g, "").toLowerCase();
 
-export default function PdfView({ src, highlights }: { src: string | null; highlights: Highlight[] }) {
+export default function PdfView({ src, highlights, emptyText }: { src: string | null; highlights: Highlight[]; emptyText: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [boxes, setBoxes] = useState<{ x: number; y: number; w: number; h: number; color: string }[]>([]);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -58,7 +58,7 @@ export default function PdfView({ src, highlights }: { src: string | null; highl
     return () => { cancelled = true; };
   }, [src, key]);
 
-  if (!src) return <div className="flex aspect-[1/1.414] w-full items-center justify-center rounded-[4px] border border-dashed border-ink-3/50 px-6 text-center text-[14px] text-ink-3">Здесь появится счёт, а найденные реквизиты будут подсвечены</div>;
+  if (!src) return <div className="flex aspect-[1/1.414] w-full items-center justify-center rounded-[4px] border border-dashed border-ink-3/50 px-6 text-center text-[14px] text-ink-3">{emptyText}</div>;
   return (
     <div className="relative overflow-hidden rounded-[4px] bg-white shadow-[0_1px_2px_rgba(21,32,43,0.1),0_10px_30px_-14px_rgba(21,32,43,0.3)]">
       <canvas ref={canvasRef} className="block" />
