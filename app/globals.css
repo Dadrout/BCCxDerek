@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Derek: визуальная система.
+  Идея: бланк платёжного поручения. IBAN показывается в клетках, как в бумажной форме,
+  и расхождение видно по клеткам. Всё остальное спокойное и плотное, как банковский интерфейс.
+*/
+@theme {
+  --font-sans: "Onest Variable", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --color-paper: #e6eaee;   /* фон страницы */
+  --color-sheet: #ffffff;   /* лист */
+  --color-ink: #15202b;     /* основной текст, главная кнопка */
+  --color-ink-2: #4a5866;   /* вторичный текст */
+  --color-ink-3: #7d8995;   /* подписи */
+  --color-rule: #d6dde3;    /* линии */
+  --color-cell: #f3f5f7;    /* пустая клетка бланка */
+
+  --color-stop: #b3261e;    /* расхождение: цвет штампа */
+  --color-stop-wash: #fbeae8;
+  --color-go: #12684f;      /* совпадение */
+  --color-go-wash: #e2f1ea;
+  --color-hold: #8f5a0b;    /* не прочитано */
+  --color-hold-wash: #fbf0d9;
+  --color-new: #2b4a86;     /* новый поставщик */
+  --color-new-wash: #e6ecf6;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer components {
+  .btn {
+    @apply inline-flex h-11 items-center justify-center rounded-md px-4 text-[15px] font-medium transition-colors
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-45;
+  }
+  .btn-primary { @apply bg-ink text-white hover:bg-[#25384a]; }
+  .btn-stop { @apply bg-stop text-white hover:bg-[#951f18] focus-visible:outline-stop; }
+  .btn-secondary { @apply border border-rule bg-sheet text-ink hover:border-ink-3; }
+  .btn-quiet { @apply h-9 px-2 text-ink-2 hover:text-ink; }
+  .input {
+    @apply h-11 w-full rounded-md border border-rule bg-sheet px-3 text-[15px] placeholder:text-ink-3
+      focus-visible:border-ink focus-visible:outline-none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Единственная анимация: клетки с расхождением заполняются по очереди, когда приходит результат. */
+@keyframes cell-in {
+  from { background-color: transparent; color: inherit; }
+}
+.cell-flag { animation: cell-in 260ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-flag { animation: none; }
 }

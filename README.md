@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Derek — проверка реквизитов поставщика перед оплатой
 
-## Getting Started
+Демо-прототип для ITU Hackathon-2026 (FINTECH CASE, Банк ЦентрКредит). **Все компании, БИН, IBAN, телефоны и платежи синтетические.** Название продукта меняется в одном месте: `lib/brand.ts`.
 
-First, run the development server:
+## Запуск
+
+Нужен Node.js 20+.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # по желанию: вписать ANTHROPIC_API_KEY
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Для демо на сцене надёжнее production-сборка: `npm run build && npm start`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Два режима извлечения
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Режим | Когда | Что умеет |
+|---|---|---|
+| Claude (`claude-opus-5-5`) | задан `ANTHROPIC_API_KEY` | PDF любой вёрстки и сканы, RU/KZ, исходный фрагмент и уверенность по каждому полю, «?» вместо нечитаемых символов |
+| Локальный | ключа нет или API недоступен | текстовый слой PDF + регулярные выражения; скан честно помечается как нечитаемый |
 
-## Learn More
+Сравнение реквизитов в обоих режимах выполняет обычный код (`lib/check.ts`): нормализация, кириллица-двойники латиницы, контрольная сумма IBAN (mod 97), сверка с подтверждённой карточкой, история платежей.
 
-To learn more about Next.js, take a look at the following resources:
+## Сценарии для жюри (папка `public/samples`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Обычный счёт.** Поставщик знакомый, сумма выросла на 15%, IBAN прежний → «Реквизиты совпадают».
+2. **Подмена IBAN.** Название, БИН, сумма и оформление прежние, изменились IBAN, банк и телефон, есть приписка «оплачивайте по новым реквизитам» → строка IBAN подсвечена, старый и новый IBAN рядом, «Отложить платёж», звонок по сохранённому контакту из договора, фиксация результата.
+3. **Размытый скан.** → «Не удалось уверенно прочитать реквизиты». Можно ввести IBAN вручную. Ошибка в одной цифре ловится контрольной суммой (попробуйте `KZ21 8560 0000 1234 5679`).
+4. **Новый поставщик.** → «Нет подтверждённой записи для сравнения» и чек-лист первичной проверки.
+5. **Свой PDF.** Можно загрузить любой счёт прямо на сцене.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Блок «Что видит банк» показывает сигнал на стороне BCC: нового IBAN получателя нет в истории платежей клиента.
 
-## Deploy on Vercel
+Принцип: загруженный файл никогда не меняет эталон. Даже если поставщик подтвердил смену реквизитов, создаётся заявка, которую утверждает второй уполномоченный сотрудник.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Структура
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/page.tsx` — экран оплаты
+- `app/api/check/route.ts` — приём PDF, извлечение, проверка
+- `lib/extract.ts` — Claude и локальный разбор
+- `lib/check.ts`, `lib/iban.ts` — логика сверки
+- `lib/registry.ts` — синтетическая карточка поставщика и история платежей
+- `components/PdfView.tsx` — рендер PDF и подсветка строк
+- `scripts/make_invoices.py` — генератор тестовых счетов (`python3 scripts/make_invoices.py`)
