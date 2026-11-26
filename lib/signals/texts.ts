@@ -259,3 +259,37 @@ const FIELD_ERRORS: Record<Lang, FE> = {
   },
 };
 export const fieldErrorText = (e: FieldError, lang: Lang): string => FIELD_ERRORS[lang][e.field][e.code];
+
+// Названия и подсказки демо-сценариев.
+type ScenarioKey = "normal" | "swap" | "new_to_you" | "young_firm" | "blurry" | "manual" | "known_new";
+const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: string }>> = {
+  ru: {
+    normal: { title: "Обычный счёт", hint: "Знакомый поставщик, сумма выросла, IBAN прежний" },
+    swap: { title: "Подмена IBAN", hint: "Всё как обычно, кроме номера счёта: он принадлежит частному лицу" },
+    new_to_you: { title: "Новый для вас поставщик", hint: "Вы ему ещё не платили, а другие клиенты банка платят на другой счёт" },
+    young_firm: { title: "Совсем новая фирма", hint: "Фирма и счёт открыты несколько дней назад" },
+    blurry: { title: "Размытый скан", hint: "Реквизиты не читаются уверенно, их придётся ввести руками" },
+    manual: { title: "Ввести вручную", hint: "Впишите: ТОО «Дала Транс Логистик», БИН 180340021457 и номер счёта из карточки поставщика" },
+    known_new: { title: "Новый поставщик", hint: "Вы ему ещё не платили, но другие клиенты банка платят на тот же счёт" },
+  },
+  kk: {
+    normal: { title: "Қалыпты шот", hint: "Таныс жеткізуші, сома өсті, IBAN бұрынғы" },
+    swap: { title: "IBAN ауыстырылған", hint: "Бәрі әдеттегідей, тек шот нөмірі басқа: ол жеке тұлғаға тиесілі" },
+    new_to_you: { title: "Сіз үшін жаңа жеткізуші", hint: "Сіз оған әлі төлемегенсіз, ал банктің басқа клиенттері басқа шотқа төлейді" },
+    young_firm: { title: "Мүлде жаңа фирма", hint: "Фирма мен шот бірнеше күн бұрын ашылған" },
+    blurry: { title: "Бұлыңғыр скан", hint: "Деректемелер анық оқылмайды, оларды қолмен енгізу керек" },
+    manual: { title: "Қолмен енгізу", hint: "Жазыңыз: «Дала Транс Логистик» ЖШС, БСН 180340021457 және жеткізуші карточкасындағы шот нөмірі" },
+    known_new: { title: "Жаңа жеткізуші", hint: "Сіз оған әлі төлемегенсіз, бірақ банктің басқа клиенттері дәл сол шотқа төлейді" },
+  },
+  en: {
+    normal: { title: "Regular invoice", hint: "Known supplier, higher amount, same IBAN" },
+    swap: { title: "Swapped IBAN", hint: "Everything as usual except the account number: it belongs to a private person" },
+    new_to_you: { title: "New to you", hint: "You have never paid this company, and other bank customers pay it to a different account" },
+    young_firm: { title: "Brand-new company", hint: "The company and its account were opened a few days ago" },
+    blurry: { title: "Blurry scan", hint: "The details can't be read reliably, so you will have to type them in" },
+    manual: { title: "Type it in", hint: "Type in: Dala Trans Logistik LLP, BIN 180340021457 and the account number from the supplier card" },
+    known_new: { title: "New supplier", hint: "You have never paid this company, but other bank customers pay it to the same account" },
+  },
+};
+export const scenarioTitle = (id: ScenarioKey, lang: Lang): string => SCENARIO_TEXTS[lang][id].title;
+export const scenarioHint = (id: ScenarioKey, lang: Lang): string => SCENARIO_TEXTS[lang][id].hint;

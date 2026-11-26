@@ -1,6 +1,6 @@
 """Генерирует синтетические счета на оплату для демо. Все компании, БИН и IBAN вымышлены.
-Запуск: python3 scripts/make_invoices.py  (нужны reportlab, pillow, numpy, pdftoppm)"""
-import os, subprocess, tempfile, random
+Запуск: python3 scripts/make_invoices.py  (нужны reportlab, pillow, numpy; pdftoppm нужен только для 03)"""
+import sys, os, subprocess, tempfile, random
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -9,9 +9,19 @@ from reportlab.lib.colors import HexColor, black
 from PIL import Image, ImageFilter
 import numpy as np
 
+if hasattr(sys.stdout, "reconfigure"): sys.stdout.reconfigure(encoding="utf-8")
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "samples")
-pdfmetrics.registerFont(TTFont("DJ", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-pdfmetrics.registerFont(TTFont("DJB", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+import shutil
+
+def _font(candidates):
+    for f in candidates:
+        if os.path.exists(f): return f
+    raise SystemExit("Нет шрифта с кириллицей, проверьте пути: " + ", ".join(candidates))
+
+pdfmetrics.registerFont(TTFont("DJ", _font([
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "C:/Windows/Fonts/DejaVuSans.ttf", "C:/Windows/Fonts/arial.ttf"])))
+pdfmetrics.registerFont(TTFont("DJB", _font([
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "C:/Windows/Fonts/DejaVuSans-Bold.ttf", "C:/Windows/Fonts/arialbd.ttf"])))
 
 def kz_iban(bank: str, acct: str) -> str:
     bban = bank + acct
@@ -25,7 +35,7 @@ def grp(iban): return " ".join(iban[i:i+4] for i in range(0, len(iban), 4))
 SUPPLIER = dict(name="ТОО «Дала Транс Логистик»", bin="180340021457",
     addr="г. Алматы, ул. Сейфуллина, 404, офис 12", phone="+7 727 355 18 40",
     iban=kz_iban("856", "0000012345678"), bank="АО «Банк ЦентрКредит»", bik="KCJBKZKX", kbe="17")
-FRAUD_IBAN = kz_iban("722", "0000098765432")
+FRAUD_IBAN = kz_iban("856", "0000098765432")
 NEW = dict(name="ТОО «Алтын Сауда Сервис»", bin="210940017733",
     addr="г. Астана, пр. Мангилик Ел, 55/8", phone="+7 717 270 44 12",
     iban=kz_iban("601", "0000077712345"), bank="АО «Народный Банк Казахстана»", bik="HSBKKZKX", kbe="17")
@@ -50,7 +60,6 @@ def invoice(path, sup, number, date, items, iban=None, phone=None, note=None):
     c.drawString(50, y-24, f"Бенефициар: {sup['name']}    БИН: {sup['bin']}    КБе: {sup['kbe']}")
     c.drawString(50, y-38, f"ИИК (IBAN): {grp(iban or sup['iban'])}")
     bank, bik = sup["bank"], sup["bik"]
-    if iban and iban[4:7] == "722": bank, bik = "АО «Kaspi Bank»", "CASPKZKA"
     c.drawString(50, y-52, f"Банк бенефициара: {bank}    БИК: {bik}")
     c.setFont("DJB", 15); c.drawString(40, y-100, f"СЧЁТ НА ОПЛАТУ № {number} от {date}")
     c.setFont("DJ", 9)
@@ -95,21 +104,25 @@ os.makedirs(OUT, exist_ok=True)
 t = invoice(f"{OUT}/01_dala_obychnyj.pdf", SUPPLIER, "ДТ-1124", "18.11.2026", ROUTE)
 invoice(f"{OUT}/02_dala_podmena_iban.pdf", SUPPLIER, "ДТ-1124", "18.11.2026", ROUTE,
         iban=FRAUD_IBAN, phone="+7 707 412 90 66",
-        note="Внимание: в связи со сменой обслуживающего банка просим оплачивать по новым реквизитам.")
+        note="Внимание: в связи со сменой расчётного счёта просим оплачивать по новым реквизитам.")
 invoice(f"{OUT}/04_novyj_postavshik.pdf", NEW, "АС-0071", "20.11.2026",
         [("Канцелярские товары (комплект)", 10, 18500), ("Бумага офисная А4, коробка", 15, 14200)])
 
 # 03: размытый «скан» обычного счёта
-with tempfile.TemporaryDirectory() as d:
-    subprocess.run(["pdftoppm", "-r", "70", "-png", "-singlefile", f"{OUT}/01_dala_obychnyj.pdf", f"{d}/p"], check=True)
-    im = Image.open(f"{d}/p.png").convert("L")
-    im = im.rotate(1.3, expand=True, fillcolor=235, resample=Image.BICUBIC)
-    im = im.filter(ImageFilter.GaussianBlur(1.6))
-    a = np.asarray(im).astype(np.float32)
-    rng = np.random.default_rng(7)
-    a = a*0.82 + 30 + rng.normal(0, 14, a.shape)
-    im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
-    im.save(f"{OUT}/03_dala_razmytyj_skan.pdf", "PDF", resolution=70)
+if shutil.which("pdftoppm") is None:
+    print("pdftoppm не найден: 03_dala_razmytyj_skan.pdf пропущен")
+else:
+    with tempfile.TemporaryDirectory() as d:
+        subprocess.run(["pdftoppm", "-r", "70", "-png", "-singlefile", f"{OUT}/01_dala_obychnyj.pdf", f"{d}/p"], check=True)
+        im = Image.open(f"{d}/p.png").convert("L")
+        im = im.rotate(1.3, expand=True, fillcolor=235, resample=Image.BICUBIC)
+        im = im.filter(ImageFilter.GaussianBlur(1.6))
+        a = np.asarray(im).astype(np.float32)
+        rng = np.random.default_rng(7)
+        a = a*0.82 + 30 + rng.normal(0, 14, a.shape)
+        im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+        im.save(f"{OUT}/03_dala_razmytyj_skan.pdf", "PDF", resolution=70)
+
 
 print("Поставщик IBAN:", SUPPLIER["iban"])
 print("Подменный IBAN:", FRAUD_IBAN)
