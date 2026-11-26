@@ -34,6 +34,7 @@ export type Contract = {
   phone: string;
   email: string;
   source: string;
+  paymentTerms: { clause: string; text: string }[];
 };
 
 export type BankContext = {

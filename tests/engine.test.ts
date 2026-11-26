@@ -48,7 +48,7 @@ const BASE: BankRaw = {
   accounts: ACCOUNTS,
   registry: REGISTRY,
   complaints: [],
-  contracts: [{ clientBin: CLIENT, supplierBin: DALA_BIN, person: "Ахметов Б.", role: "директор", phone: "+7 701 111 22 33", email: "info@dalatrans.kz", source: "договор №12" }],
+  contracts: [{ clientBin: CLIENT, supplierBin: DALA_BIN, person: "Ахметов Б.", role: "директор", phone: "+7 701 111 22 33", email: "info@dalatrans.kz", source: "договор №12", paymentTerms: [] }],
 };
 
 // Добавляет записи к базе; более поздние записи реестра/счетов перекрывают ранние (Map по ключу).
