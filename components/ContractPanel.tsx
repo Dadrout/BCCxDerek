@@ -54,7 +54,7 @@ function Quote({ label, text, className }: { label: string; text: string; classN
   return (
     <figure className={`min-w-0 rounded-[8px] border px-3.5 py-3 ${className}`}>
       <figcaption className="text-[12.5px] font-medium text-ink-3">{label}</figcaption>
-      <blockquote className="mt-1 break-words text-[14px] leading-[1.5]">«{text}»</blockquote>
+      <blockquote className="mt-1 break-words text-[14px] leading-[1.5]">{text.includes("«") || text.includes("»") ? text : `«${text}»`}</blockquote>
     </figure>
   );
 }

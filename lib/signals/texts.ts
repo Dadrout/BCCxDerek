@@ -60,7 +60,9 @@ const RU: Record<SignalId, Fn> = {
   email_reply_to: (p) => `Ответ на письмо уйдёт на другой адрес: ${s(p.replyTo)}`,
   email_auth_failed: () => "Почтовый сервер не подтвердил, что письмо отправил владелец адреса",
   email_pressure: (p) => `В письме давят на вас: «${s(p.quote)}»`,
-  contract_conflict: (p) => `Условия оплаты расходятся с договором: в ${p.source === "email" ? "письме" : "счёте"} — «${s(p.docQuote)}», а в договоре (п. ${s(p.clause)}) — «${s(p.contractQuote)}»`,
+  contract_conflict: (p) => p.kind === "details_change"
+    ? `Просят сменить реквизиты, а по договору это возможно только допсоглашением (п. ${s(p.clause)})`
+    : `Письмо или счёт просит заплатить другой фирме, а договор это запрещает (п. ${s(p.clause)})`,
   nothing_to_compare: () => "Банку не с чем сравнить этого получателя",
   change_approved: (p) => `Новый счёт подтверждён ${s(p.date)} (${s(p.by)})`,
   first_payment: () => "Вы платите этой фирме впервые",
@@ -93,7 +95,9 @@ const KK: Record<SignalId, Fn> = {
   email_reply_to: (p) => `Хатқа жауап басқа мекенжайға кетеді: ${s(p.replyTo)}`,
   email_auth_failed: () => "Пошта сервері хатты мекенжай иесі жібергенін растамады",
   email_pressure: (p) => `Хатта сізге қысым жасалады: «${s(p.quote)}»`,
-  contract_conflict: (p) => `Төлем шарттары шартқа сай келмейді: ${p.source === "email" ? "хатта" : "шотта"} — «${s(p.docQuote)}», ал шартта (${s(p.clause)}-т.) — «${s(p.contractQuote)}»`,
+  contract_conflict: (p) => p.kind === "details_change"
+    ? `Деректемелерді ауыстыруды сұрайды, ал шарт бойынша бұл тек қосымша келісіммен мүмкін (${s(p.clause)}-т.)`
+    : `Хат немесе шот басқа фирмаға төлеуді сұрайды, ал шарт бұған тыйым салады (${s(p.clause)}-т.)`,
   nothing_to_compare: () => "Банкке бұл алушыны салыстыратын ештеңе жоқ",
   change_approved: (p) => `Жаңа шот ${s(p.date)} күні расталды (${s(p.by)})`,
   first_payment: () => "Сіз бұл фирмаға бірінші рет төлеп жатырсыз",
@@ -126,7 +130,9 @@ const EN: Record<SignalId, Fn> = {
   email_reply_to: (p) => `Replies to this email will go to a different address: ${s(p.replyTo)}`,
   email_auth_failed: () => "The mail server could not confirm that the owner of the address sent this email",
   email_pressure: (p) => `The email puts pressure on you: "${s(p.quote)}"`,
-  contract_conflict: (p) => `Payment terms contradict the contract: the ${s(p.source)} says "${s(p.docQuote)}", the contract (cl. ${s(p.clause)}) says "${s(p.contractQuote)}"`,
+  contract_conflict: (p) => p.kind === "details_change"
+    ? `They ask to change bank details, but the contract allows that only by a supplementary agreement (cl. ${s(p.clause)})`
+    : `The email or invoice asks you to pay another company, but the contract forbids it (cl. ${s(p.clause)})`,
   nothing_to_compare: () => "The bank has nothing to compare this recipient with",
   change_approved: (p) => `The new account was confirmed on ${s(p.date)} (${s(p.by)})`,
   first_payment: () => "This is your first payment to this company",

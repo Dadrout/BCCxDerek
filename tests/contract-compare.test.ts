@@ -111,10 +111,18 @@ describe("compareWithContract", () => {
     expect(r.conflicts).toHaveLength(1);
     expect(r.conflicts[0].kind).toBe("third_party");
   });
-  it("ИИ вернул пустой список — режим ai, без находок", async () => {
+  it("ИИ вернул пустой список — берём локальную находку, режим local", async () => {
     vi.stubEnv("GROQ_API_KEY", "test-key");
     vi.stubGlobal("fetch", vi.fn(async () => groqReply([])));
-    expect(await compareWithContract(DOCS, TERMS)).toEqual({ conflicts: [], mode: "ai" });
+    const r = await compareWithContract(DOCS, TERMS);
+    expect(r.mode).toBe("local");
+    expect(r.conflicts).toHaveLength(1);
+    expect(r.conflicts[0].kind).toBe("third_party");
+  });
+  it("ИИ вернул пустой список, локально ничего нет — []", async () => {
+    vi.stubEnv("GROQ_API_KEY", "test-key");
+    vi.stubGlobal("fetch", vi.fn(async () => groqReply([])));
+    expect(await compareWithContract([{ source: "email", text: "Добрый день! Счёт во вложении." }], TERMS)).toEqual({ conflicts: [], mode: "local" });
   });
   it("цитата ИИ с «е» вместо «ё» принимается", async () => {
     vi.stubEnv("GROQ_API_KEY", "test-key");

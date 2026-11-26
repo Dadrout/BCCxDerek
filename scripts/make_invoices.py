@@ -41,7 +41,7 @@ NEW = dict(name="ТОО «Алтын Сауда Сервис»", bin="2109400177
     iban=kz_iban("601", "0000077712345"), bank="АО «Народный Банк Казахстана»", bik="HSBKKZKX", kbe="17")
 BUYER = "ТОО «Шаңырақ Бизнес Групп», БИН 150540009981"
 
-def invoice(path, sup, number, date, items, iban=None, phone=None, note=None):
+def invoice(path, sup, number, date, items, iban=None, phone=None, note=None, contract_line=True):
     c = canvas.Canvas(path, pagesize=A4)
     W, H = A4
     c.setTitle(f"Счёт на оплату № {number}")
@@ -64,7 +64,9 @@ def invoice(path, sup, number, date, items, iban=None, phone=None, note=None):
     c.setFont("DJB", 15); c.drawString(40, y-100, f"СЧЁТ НА ОПЛАТУ № {number} от {date}")
     c.setFont("DJ", 9)
     c.drawString(40, y-120, f"Покупатель: {BUYER}")
-    c.drawString(40, y-134, "Договор: № 14/2025 от 10.01.2025 на оказание транспортно-экспедиционных услуг")
+    # Для счёта 06 строку договора не печатаем: Арна Карго не сторона договора.
+    if contract_line:
+        c.drawString(40, y-134, "Договор: № 14/2025 от 10.01.2025 на оказание транспортно-экспедиционных услуг")
     # таблица
     ty = y-165
     cols = [40, 65, 330, 380, 440, W-40]
@@ -114,7 +116,7 @@ ARNA = dict(name="ТОО «Арна Карго»", bin="190540018826", addr="г.
 
 def make_06():
     return invoice(f"{OUT}/06_arna_schet.pdf", ARNA, "АК-0388", "10.12.2026",
-        [("Перевозка груза Алматы — Астана, тент 20 т", 3, 165000)])
+        [("Перевозка груза Алматы — Астана, тент 20 т", 3, 165000)], contract_line=False)
 
 if len(sys.argv) > 1 and sys.argv[1] == "06":
     # Только счёт 06: файлы 01–05 не трогаем.

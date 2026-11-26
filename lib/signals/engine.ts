@@ -143,15 +143,18 @@ export function evaluate(
   }
 
   // Документ и договор.
-  if (opts.hints?.changeRequestText) add("change_request", { text: opts.hints.changeRequestText });
+  const conflicts = opts.hints?.contract?.conflicts ?? [];
+  const first = conflicts[0];
+  // Если цитата конфликта с договором совпадает с просьбой о смене реквизитов, одно предложение дважды не показываем.
+  const flat = (x: string) => x.replace(/\s+/g, " ").trim();
+  const sameSentence = !!first && !!opts.hints?.changeRequestText && flat(first.docQuote) === flat(opts.hints.changeRequestText);
+  if (opts.hints?.changeRequestText && !sameSentence) add("change_request", { text: opts.hints.changeRequestText });
   // Договор: по БИН платежа; если его нет — по БИН поставщика из подсказок (только договор этого клиента).
   const contractFor = (bin: string) => bank.contracts.find((c) => c.clientBin === opts.clientBin && c.supplierBin === bin);
   const hintBin = opts.hints?.contract?.supplierBin;
   const contract = contractFor(p.bin) ?? (hintBin ? contractFor(hintBin) : undefined);
-  const conflicts = opts.hints?.contract?.conflicts ?? [];
-  if (conflicts.length > 0) {
-    const first = conflicts[0];
-    add("contract_conflict", { source: first.source, docQuote: first.docQuote, clause: first.clause, contractQuote: first.contractQuote, count: conflicts.length });
+  if (first) {
+    add("contract_conflict", { kind: first.kind, source: first.source, docQuote: first.docQuote, clause: first.clause, contractQuote: first.contractQuote, count: conflicts.length });
   }
   const docPhone = opts.hints?.phoneInDocument;
   if (contract?.phone && docPhone && phoneDigits(contract.phone) !== phoneDigits(docPhone)) {

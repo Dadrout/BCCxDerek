@@ -460,10 +460,19 @@ describe("contract_conflict", () => {
     const r = run(dala, withContract([conflict(), conflict({ kind: "details_change", source: "invoice", clause: "4.2" })]));
     expect(find(r, "contract_conflict")).toEqual({
       id: "contract_conflict", severity: "check",
-      params: { source: "email", docQuote: "направить нашему партнёру", clause: "4.3", contractQuote: "Оплата третьим лицам не допускается.", count: 2 },
+      params: { kind: "third_party", source: "email", docQuote: "направить нашему партнёру", clause: "4.3", contractQuote: "Оплата третьим лицам не допускается.", count: 2 },
     });
     expect(r.verdict).toBe("check");
     expect(r.main.id).toBe("contract_conflict");
+  });
+
+  test("when the conflict quote equals the change request text, change_request is dropped but the conflict stays", () => {
+    const hints: DocumentHints = {
+      changeRequestText: "направить  нашему партнёру", phoneInDocument: null, contract: { supplierBin: DALA_BIN, conflicts: [conflict()], mode: "local" },
+    };
+    const r = run(dala, hints);
+    expect(ids(r)).toContain("contract_conflict");
+    expect(ids(r)).not.toContain("change_request");
   });
 
   test("no conflicts: no signal", () => {

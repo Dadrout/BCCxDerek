@@ -132,9 +132,10 @@ export async function POST(req: Request) {
       if (buf.subarray(0, 5).toString() !== "%PDF-" && !looksLikeEml(buf)) return NextResponse.json({ error: "Нужен PDF-файл или письмо .eml", code: "not_pdf" }, { status: 400 });
     }
     if (buf.subarray(0, 5).toString() !== "%PDF-") return await handleEmail(buf);
-    const extraction = await extract(buf);
+    // Чтение полей и текста счёта идут параллельно.
+    const [extraction, bodyText] = await Promise.all([extract(buf), invoiceText(buf)]);
     const { fields, hints } = fromExtraction(extraction);
-    const { hint, panel } = await contractCheck(fields.bin, [{ source: "invoice", text: await invoiceText(buf) }]);
+    const { hint, panel } = await contractCheck(fields.bin, [{ source: "invoice", text: bodyText }]);
     return NextResponse.json({ fields, hints: { ...hints, contract: hint }, extraction, contract: panel });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
