@@ -11,12 +11,17 @@ Embed Derek in a BCC Business "new payment" screen. The check runs on every paym
 - Task 8 side fixes: engine `main` was undefined for an ok verdict carried only by `change_approved` (fixed + test); `/api/explain` returns offline in stage mode; `/api/extract` whitelists samples from `SCENARIOS`
 - lint / tsc / 173 tests / build clean; HTTP smoke in stage mode passes for the three stage scenarios
 
+- Email (.eml) check on branch feat/email-check: spec docs/superpowers/specs/2026-11-26-email-check-design.md, plan docs/superpowers/plans/2026-11-26-email-check.md; 5 tasks + final review fixes; 243 tests, tsc/lint/build clean; browser-checked (1280px, 375px, kk/ru)
+
 ## Next
+- Decide how to integrate feat/email-check (merge into feat/payment-screen / push + PR)
+- Update the pitch deck: 243 tests, 29 signals, email scenario, «где ИИ» slide (pressure in the email)
+- Demo note: in the email scenario click «Не подтвердил» (approval never lowers email signals)
 - Controller in-browser walkthrough: 1280×800 and 375px, three stage scenarios, edit-after-check reset, kk/ru/en switch, approve-as-second-employee, reset demo
 - Offline rehearsal with network actually disabled
 
 ## Later projects (agreed order)
-3. Email (.eml) checks: lookalike domain, Reply-To, SPF/DKIM
+3. Email (.eml) checks — DONE on feat/email-check
 4. Supplier QR "verified details"
 5. Other B2B schemes: CEO fraud, payroll account change, business account takeover
 
