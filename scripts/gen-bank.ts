@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { DEMO_TODAY } from "../lib/demo.ts";
 import { makeKzIban } from "../lib/iban.ts";
 import {
-  ALTYN, DALA, DALA_CONTRACT, DALA_DEMO_PAYMENTS, DEMO_CLIENT, FRAUD_IBAN, FRAUD_OWNER, INACTIVE,
+  ALTYN, ARNA, DALA, DALA_CONTRACT, DALA_DEMO_PAYMENTS, DEMO_CLIENT, FRAUD_IBAN, FRAUD_OWNER, INACTIVE,
   REPORTED, REPORTED_IBAN, TAU, UNRELIABLE, ZHYLDAM,
 } from "../lib/bank/fixtures.ts";
 import type { Account, BankRaw, Company, Payment } from "../lib/bank/types.ts";
@@ -133,6 +133,9 @@ export function generate(seed = 2026): BankRaw {
     pool.forEach((c, idx) => pay(c, b, ibans[idx % ibans.length], base));
     if (i < 5) pay(DEMO_CLIENT.bin, b, ibans[0], base);
   }
+
+  // Партнёр Дала Транс добавляется после случайного цикла и без вызовов rnd, чтобы остальные записи не изменились.
+  registry.push({ bin: ARNA.bin, name: ARNA.name, registeredAt: ARNA.registeredAt, status: "active" });
 
   payments.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 

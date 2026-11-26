@@ -41,8 +41,8 @@ const sig = (o: { signals: Sig[] }, id: string) => o.signals.find((x) => x.id ==
 
 describe("scenarios", () => {
   test("order and stage flags", () => {
-    expect(SCENARIOS.map((s) => s.id)).toEqual(["normal", "swap", "email", "new_to_you", "young_firm", "blurry", "manual", "known_new"]);
-    expect(SCENARIOS.filter((s) => s.onStage).map((s) => s.id)).toEqual(["normal", "swap", "email", "new_to_you"]);
+    expect(SCENARIOS.map((s) => s.id)).toEqual(["normal", "swap", "email", "partner", "new_to_you", "young_firm", "blurry", "manual", "known_new"]);
+    expect(SCENARIOS.filter((s) => s.onStage).map((s) => s.id)).toEqual(["normal", "swap", "email", "partner"]);
     for (const id of ["new_to_you", "young_firm", "manual"]) expect(sc(id).sample).toBeUndefined();
     for (const id of ["normal", "swap", "blurry", "known_new"]) expect(sc(id).sample).toBeTruthy();
   });
@@ -51,6 +51,19 @@ describe("scenarios", () => {
     expect(sc("email").onStage).toBe(true);
     expect(sc("email").sample).toBe("05_dala_pismo.eml");
     expect(existsSync(join(process.cwd(), "public", "samples", "05_dala_pismo.eml"))).toBe(true);
+  });
+
+  test("partner scenario is on stage, new_to_you is not, sample files exist", () => {
+    expect(sc("partner").onStage).toBe(true);
+    expect(sc("partner").sample).toBe("06_dala_partner.eml");
+    expect(sc("new_to_you").onStage).toBe(false);
+    for (const f of ["06_dala_partner.eml", "06_arna_schet.pdf"]) expect(existsSync(join(process.cwd(), "public", "samples", f))).toBe(true);
+  });
+
+  test("email scenario still stops on the lookalike domain", async () => {
+    const o = await run(sc("email"));
+    expect(o.verdict).toBe("stop");
+    expect(o.main.id).toBe("email_lookalike");
   });
 
   test("titles and hints exist in all languages", () => {

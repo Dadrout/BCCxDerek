@@ -6,7 +6,7 @@ import { POST as checkPOST } from "@/app/api/check/route";
 import { POST as payPOST } from "@/app/api/pay/route";
 import { POST as approvalsPOST, DELETE as approvalsDELETE } from "@/app/api/approvals/route";
 import { POST as extractPOST } from "@/app/api/extract/route";
-import { DALA, FRAUD_IBAN, ZHYLDAM } from "@/lib/bank/fixtures";
+import { ARNA, DALA, FRAUD_IBAN, ZHYLDAM } from "@/lib/bank/fixtures";
 import type { PaymentFields } from "@/lib/signals/validate";
 
 const json = (url: string, body: unknown, method = "POST") =>
@@ -220,6 +220,56 @@ describe("api", () => {
       const c = await rc.json();
       expect(c.verdict).toBe("stop");
       expect(c.main.id).toBe("email_lookalike");
+    });
+
+    const stageExtract = async (sample: string) => {
+      process.env.DEREK_STAGE = "1";
+      process.env.GROQ_API_KEY = "fake";
+      globalThis.fetch = (() => { throw new Error("network call in stage mode"); }) as typeof fetch;
+      const fd = new FormData();
+      fd.set("sample", sample);
+      const r = await extractPOST(new Request("http://x/api/extract", { method: "POST", body: fd }));
+      expect(r.status).toBe(200);
+      return r.json();
+    };
+
+    test("partner sample: third_party conflict with clause 4.3, check gives contract_conflict and contact", async () => {
+      const j = await stageExtract("06_dala_partner.eml");
+      expect(j.fields.bin).toBe(ARNA.bin);
+      expect(j.hints.contract.supplierBin).toBe(DALA.bin);
+      expect(j.hints.contract.mode).toBe("local");
+      expect(j.hints.contract.conflicts).toHaveLength(1);
+      expect(j.hints.contract.conflicts[0].kind).toBe("third_party");
+      expect(j.hints.contract.conflicts[0].clause).toBe("4.3");
+      expect(j.contract).toEqual({ person: "Ахметов Ерлан Серикович", source: "договор № 14/2025 от 10.01.2025", paymentTerms: expect.any(Array) });
+      const c = await (await checkPOST(json("check", { fields: j.fields, hints: j.hints }))).json();
+      expect(c.verdict).toBe("check");
+      expect(c.main.id).toBe("contract_conflict");
+      expect(c.contact.person).toBe("Ахметов Ерлан Серикович");
+      expect(c.signals.map((x: { id: string }) => x.id)).not.toContain("email_lookalike");
+      expect(c.signals.map((x: { id: string }) => x.id)).not.toContain("email_domain_differs");
+    });
+
+    test("regular Dala PDF: contract found, no conflicts, verdict ok", async () => {
+      const j = await stageExtract("01_dala_obychnyj.pdf");
+      expect(j.hints.contract.supplierBin).toBe(DALA.bin);
+      expect(j.hints.contract.conflicts).toHaveLength(0);
+      expect(j.contract.person).toBe("Ахметов Ерлан Серикович");
+      const c = await (await checkPOST(json("check", { fields: j.fields, hints: j.hints }))).json();
+      expect(c.verdict).toBe("ok");
+    });
+
+    test("supplier without a contract: no comparison, contract null", async () => {
+      const j = await stageExtract("04_novyj_postavshik.pdf");
+      expect(j.hints.contract ?? null).toBeNull();
+      expect(j.contract).toBeNull();
+    });
+
+    test("swap sample still stops with the same main reason", async () => {
+      const j = await stageExtract("02_dala_podmena_iban.pdf");
+      const c = await (await checkPOST(json("check", { fields: j.fields, hints: j.hints }))).json();
+      expect(c.verdict).toBe("stop");
+      expect(c.main.id).toBe("owner_individual");
     });
 
     test("eml without PDF → 200 no_pdf_in_email; random bytes → 400 not_pdf", async () => {

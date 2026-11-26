@@ -47,6 +47,14 @@ export const ALTYN = {
   otherClients: 12,
 };
 
+// Партнёр Дала Транс: счёт в другом банке (601), поэтому в банке BCC счёта и платежей у него нет.
+export const ARNA = {
+  bin: "190540018826",
+  name: "ТОО «Арна Карго»",
+  iban: makeKzIban("601", "0000052207741"),
+  registeredAt: "2019-05-21",
+};
+
 export const REPORTED_IBAN = makeKzIban("722", "0000011122233");
 export const REPORTED = { count: 3, lastAt: "2026-11-20" };
 

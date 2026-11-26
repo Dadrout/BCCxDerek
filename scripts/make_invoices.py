@@ -108,6 +108,20 @@ def make_05():
     return invoice(f"{OUT}/05_dala_schet_drugoj_bank.pdf", sup, "ДТ-1201", "09.12.2026", ROUTE_05,
         note="В связи со сменой обслуживающего банка просим производить оплату по новым реквизитам.")
 
+# 06: счёт партнёра Дала Транс (ТОО «Арна Карго») к письму 06_dala_partner.eml
+ARNA = dict(name="ТОО «Арна Карго»", bin="190540018826", addr="г. Алматы, ул. Толе би, 286", phone="+7 727 390 12 55",
+    iban=kz_iban("601", "0000052207741"), bank="АО «Народный Банк Казахстана»", bik="HSBKKZKX", kbe="17")
+
+def make_06():
+    return invoice(f"{OUT}/06_arna_schet.pdf", ARNA, "АК-0388", "10.12.2026",
+        [("Перевозка груза Алматы — Астана, тент 20 т", 3, 165000)])
+
+if len(sys.argv) > 1 and sys.argv[1] == "06":
+    # Только счёт 06: файлы 01–05 не трогаем.
+    os.makedirs(OUT, exist_ok=True)
+    print("Сумма 06:", make_06())
+    raise SystemExit(0)
+
 if len(sys.argv) > 1 and sys.argv[1] == "05":
     # Только счёт 05: файлы 01–04 не трогаем, чтобы они остались байт-в-байт прежними.
     os.makedirs(OUT, exist_ok=True)
