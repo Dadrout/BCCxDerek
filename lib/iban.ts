@@ -1,7 +1,7 @@
 // Нормализация и проверка казахстанских IBAN (KZ + 2 контрольные цифры + 3 код банка + 13 счёт = 20 символов).
 
 // Кириллические буквы, похожие на латинские: частый приём при подделке реквизитов.
-const HOMOGLYPHS: Record<string, string> = {
+export const HOMOGLYPHS: Record<string, string> = {
   "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O",
   "Р": "P", "С": "C", "Т": "T", "Х": "X", "З": "Z", "У": "Y",
 };
@@ -54,4 +54,15 @@ export function bankByIban(iban: string): string | null {
 
 export function normalizeBin(raw: string | null | undefined): string {
   return (raw ?? "").replace(/\D/g, "");
+}
+
+// Собирает казахстанский IBAN из кода банка (3 цифры) и счёта (13 символов): контрольные цифры по mod 97.
+export function makeKzIban(bankCode: string, account: string): string {
+  const bban = bankCode + account;
+  let rem = 0;
+  for (const c of bban + "KZ00") {
+    for (const d of parseInt(c, 36).toString()) rem = (rem * 10 + Number(d)) % 97;
+  }
+  const chk = 98 - rem;
+  return `KZ${String(chk).padStart(2, "0")}${bban}`;
 }
