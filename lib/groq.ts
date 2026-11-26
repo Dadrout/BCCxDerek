@@ -11,7 +11,7 @@ export const hasGroq = () => !!process.env.GROQ_API_KEY;
 
 type Msg = { role: "system" | "user"; content: string };
 
-async function chat(messages: Msg[], extra: Record<string, unknown> = {}, timeoutMs = 20000): Promise<string> {
+export async function chat(messages: Msg[], extra: Record<string, unknown> = {}, timeoutMs = 20000): Promise<string> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
