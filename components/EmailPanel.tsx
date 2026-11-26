@@ -66,10 +66,20 @@ function Address({ address, tone, tag }: { address: string; tone: Tone; tag: str
   );
 }
 
+const KK_MONTHS = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
+
 function formatDate(d: string | null, lang: Lang): string | null {
   if (!d) return null;
   const x = new Date(d);
   if (Number.isNaN(x.getTime())) return d;
+  // Казахская локаль есть не во всех браузерах («2026 M12 9»): собираем дату сами.
+  if (lang === "kk") {
+    const p = Object.fromEntries(
+      new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Almaty" })
+        .formatToParts(x).map((part) => [part.type, part.value]),
+    );
+    return `${p.year} ж. ${p.day} ${KK_MONTHS[Number(p.month) - 1]}, ${p.hour}:${p.minute}`;
+  }
   return x.toLocaleString(LOCALE[lang], { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Almaty" });
 }
 
