@@ -501,6 +501,12 @@ describe("contract_conflict", () => {
     expect(r.action).not.toBe("call_contract");
   });
 
+  test("a DALA payment whose hint names another contract of this client keeps the DALA contact", () => {
+    const b = build({ contracts: [{ clientBin: CLIENT, supplierBin: OTHER_CO_BIN, person: "Второй П.", role: "директор", phone: "+7 700 000 00 00", email: "a@b.kz", source: "договор №2", paymentTerms: [] }] });
+    const r = evaluate(dala, b, { ...opts, hints: withContract([conflict()], OTHER_CO_BIN) });
+    expect(r.contact?.person).toBe("Ахметов Б.");
+  });
+
   test("a substituted contract feeds phone_differs and the email domain checks", () => {
     // Поставщик есть в реестре, но договора с этим клиентом нет (как партнёр в демо-сценарии).
     const unknown = newSupplierOtherBank;

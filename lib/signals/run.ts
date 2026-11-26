@@ -82,9 +82,9 @@ function readContract(v: unknown): ContractHints | null {
     const { kind, source, docQuote, clause, contractQuote } = x as Record<string, unknown>;
     if (typeof kind !== "string" || !(CONFLICT_KINDS as readonly string[]).includes(kind)) return null;
     if (source !== "invoice" && source !== "email") return null;
-    if (typeof docQuote !== "string" || docQuote.length > 300) return null;
-    if (typeof clause !== "string" || clause.length > 10) return null;
-    if (typeof contractQuote !== "string" || contractQuote.length > 300) return null;
+    if (typeof docQuote !== "string" || docQuote.length < 8 || docQuote.length > 300) return null;
+    if (typeof clause !== "string" || clause.length < 1 || clause.length > 10) return null;
+    if (typeof contractQuote !== "string" || contractQuote.length < 8 || contractQuote.length > 300) return null;
     conflicts.push({ kind: kind as ConflictKind, source, docQuote, clause, contractQuote });
   }
   return { supplierBin: c.supplierBin, conflicts, mode: c.mode };
