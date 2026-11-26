@@ -12,11 +12,11 @@ const AI_TEXT_LIMIT = 6000;
 
 // Границы слов (\b) в JS не работают с кириллицей, поэтому шаблоны без них.
 const PATTERNS: Record<PressureKind, RegExp> = {
-  urgency: /срочн|сегодня|до конца дня|немедленно|шұғыл|бүгін/i,
+  urgency: /срочн|немедленно|шұғыл|до конца (?:дня|сегодня)|оплат\S*\s+сегодня|сегодня до|бүгін төле/i,
   no_call: /не звоните|не дозвонить|пишите только|в отпуске|қоңырау шалмаңыз/i,
   new_details: /нов(?:ые|ым|ых)\s+реквизит|смен(?:а|ой|ил\S*)\s+банк|друго[йм]\s+сч[её]т|жаңа деректеме/i,
   secrecy: /конфиденциально|никому не сообщайте/i,
-  authority: /по распоряжению директора|директор просит|генеральный директор/i,
+  authority: /по распоряжению директора|директор просит|указани(?:е|ю) директора/i,
 };
 
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
@@ -47,7 +47,7 @@ export function verifyQuotes(text: string, list: Pressure[]): Pressure[] {
   for (const it of list) {
     if (!it || !PRESSURE_KINDS.includes(it.kind) || typeof it.quote !== "string") continue;
     const q = collapse(it.quote);
-    if (!q || seen.has(it.kind) || !hay.includes(q)) continue;
+    if (q.length < 8 || seen.has(it.kind) || !hay.includes(q)) continue;
     seen.add(it.kind);
     out.push({ kind: it.kind, quote: cut(it.quote.replace(/\s+/g, " ")) });
   }

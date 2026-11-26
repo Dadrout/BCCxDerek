@@ -40,6 +40,9 @@ describe("findPressureLocal", () => {
   it("казахские фразы", () => {
     expect(findPressureLocal("Бүгін төлеңіз. Қоңырау шалмаңыз.").map((p) => p.kind).sort()).toEqual(["no_call", "urgency"]);
   });
+  it("обычное письмо без давления не даёт находок", () => {
+    expect(findPressureLocal("Счёт выставлен сегодня. Генеральный директор Ахметов Е.С.")).toEqual([]);
+  });
   it("PRESSURE_KINDS экспортирован", () => {
     expect(PRESSURE_KINDS).toEqual(["urgency", "no_call", "new_details", "secrecy", "authority"]);
   });
@@ -53,6 +56,10 @@ describe("verifyQuotes", () => {
     ]);
     expect(out).toHaveLength(1);
     expect(out[0].kind).toBe("urgency");
+  });
+  it("отбрасывает слишком короткую цитату", () => {
+    expect(verifyQuotes(DEMO, [{ kind: "urgency", quote: "счёт" }])).toEqual([]);
+    expect(verifyQuotes(DEMO, [{ kind: "urgency", quote: "сег" }])).toEqual([]);
   });
   it("не больше одной на тип", () => {
     const out = verifyQuotes(DEMO, [
@@ -89,6 +96,16 @@ describe("findPressure", () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(r.mode).toBe("ai");
     expect(r.items).toEqual([{ kind: "urgency", quote: "сегодня до конца дня" }]);
+  });
+  it.each([["не JSON", "это не json"], ["пустой объект", "{}"]])("ИИ вернул %s — локально", async (_n, content) => {
+    vi.stubEnv("GROQ_API_KEY", "test-key");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content } }] }),
+      text: async () => "",
+    } as unknown as Response);
+    expect((await findPressure(DEMO)).mode).toBe("local");
   });
   it("ошибка сети — локально", async () => {
     vi.stubEnv("GROQ_API_KEY", "test-key");
