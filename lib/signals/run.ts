@@ -1,7 +1,8 @@
 // Общий серверный запуск проверки: разбор полей, затем оценка по данным банка.
 import { parsePayment, type PaymentFields, type ParsedPayment } from "./validate";
 import { evaluate } from "./engine";
-import type { CheckOutcome, DocumentHints, EmailHints } from "./types";
+import type { CheckOutcome, ContractHints, DocumentHints, EmailHints } from "./types";
+import { CONFLICT_KINDS, type ContractConflict, type ConflictKind } from "@/lib/contract/compare";
 import { PRESSURE_KINDS, type Pressure, type PressureKind } from "@/lib/email/pressure";
 import { getBank } from "@/lib/bank/store";
 import { readApprovals } from "@/lib/bank/approvals";
@@ -42,6 +43,7 @@ export async function readBody(req: Request): Promise<{ body: Record<string, unk
           changeRequestText: typeof (h as DocumentHints).changeRequestText === "string" ? (h as DocumentHints).changeRequestText : null,
           phoneInDocument: typeof (h as DocumentHints).phoneInDocument === "string" ? (h as DocumentHints).phoneInDocument : null,
           email: readEmail((h as Record<string, unknown>).email),
+          contract: readContract((h as Record<string, unknown>).contract),
         }
       : undefined;
   return { body, fields, hints };
@@ -65,4 +67,25 @@ function readEmail(v: unknown): EmailHints | null {
     pressure.push({ kind: kind as PressureKind, quote });
   }
   return { fromAddress: e.fromAddress, replyTo: e.replyTo as string | null, authFailed: e.authFailed, pressure };
+}
+
+// Подсказки о договоре: строгая форма с фиксированным порядком ключей, иначе считаем, что сравнения нет.
+function readContract(v: unknown): ContractHints | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const c = v as Record<string, unknown>;
+  if (typeof c.supplierBin !== "string" || !/^\d{12}$/.test(c.supplierBin)) return null;
+  if (c.mode !== "ai" && c.mode !== "local") return null;
+  if (!Array.isArray(c.conflicts) || c.conflicts.length > 5) return null;
+  const conflicts: ContractConflict[] = [];
+  for (const x of c.conflicts) {
+    if (!x || typeof x !== "object" || Array.isArray(x)) return null;
+    const { kind, source, docQuote, clause, contractQuote } = x as Record<string, unknown>;
+    if (typeof kind !== "string" || !(CONFLICT_KINDS as readonly string[]).includes(kind)) return null;
+    if (source !== "invoice" && source !== "email") return null;
+    if (typeof docQuote !== "string" || docQuote.length > 300) return null;
+    if (typeof clause !== "string" || clause.length > 10) return null;
+    if (typeof contractQuote !== "string" || contractQuote.length > 300) return null;
+    conflicts.push({ kind: kind as ConflictKind, source, docQuote, clause, contractQuote });
+  }
+  return { supplierBin: c.supplierBin, conflicts, mode: c.mode };
 }

@@ -64,7 +64,7 @@ function chooseAction(main: Signal, verdict: Verdict, hasContract: boolean): Act
 }
 
 export function fingerprint(clientBin: string, p: ParsedPayment, hints?: DocumentHints): string {
-  const parts = [clientBin, p.name, p.bin, p.iban, p.amount, hints?.changeRequestText ?? "", hints?.phoneInDocument ?? "", JSON.stringify(hints?.email ?? null)];
+  const parts = [clientBin, p.name, p.bin, p.iban, p.amount, hints?.changeRequestText ?? "", hints?.phoneInDocument ?? "", JSON.stringify(hints?.email ?? null), JSON.stringify(hints?.contract ?? null)];
   return createHash("sha256").update(parts.join("|")).digest("hex");
 }
 
@@ -144,7 +144,15 @@ export function evaluate(
 
   // Документ и договор.
   if (opts.hints?.changeRequestText) add("change_request", { text: opts.hints.changeRequestText });
-  const contract = bank.contracts.find((c) => c.clientBin === opts.clientBin && c.supplierBin === p.bin);
+  // Договор: по БИН платежа; если его нет — по БИН поставщика из подсказок (только договор этого клиента).
+  const contractFor = (bin: string) => bank.contracts.find((c) => c.clientBin === opts.clientBin && c.supplierBin === bin);
+  const hintBin = opts.hints?.contract?.supplierBin;
+  const contract = contractFor(p.bin) ?? (hintBin ? contractFor(hintBin) : undefined);
+  const conflicts = opts.hints?.contract?.conflicts ?? [];
+  if (conflicts.length > 0) {
+    const first = conflicts[0];
+    add("contract_conflict", { source: first.source, docQuote: first.docQuote, clause: first.clause, contractQuote: first.contractQuote, count: conflicts.length });
+  }
   const docPhone = opts.hints?.phoneInDocument;
   if (contract?.phone && docPhone && phoneDigits(contract.phone) !== phoneDigits(docPhone)) {
     add("phone_differs", { phone: docPhone, contractPhone: contract.phone });

@@ -3,6 +3,7 @@ import { evaluate, fingerprint } from "@/lib/signals/engine";
 import { SEVERITY, SIGNAL_ORDER, type Approval, type DocumentHints, type EmailHints, type SignalId } from "@/lib/signals/types";
 import type { ParsedPayment } from "@/lib/signals/validate";
 import { makeBank } from "@/lib/bank/store";
+import type { ContractConflict } from "@/lib/contract/compare";
 import type { Account, BankRaw, Company, Payment } from "@/lib/bank/types";
 import { makeKzIban } from "@/lib/iban";
 
@@ -74,14 +75,14 @@ describe("types", () => {
   test("SIGNAL_ORDER lists every signal in priority order with spec severities", () => {
     expect(SIGNAL_ORDER).toEqual([
       "owner_individual", "owner_mismatch", "account_not_found", "iban_reported", "homoglyphs", "email_lookalike", "bin_not_found", "supplier_unreliable",
-      "own_history_changed", "crowd_mismatch", "account_new", "supplier_young", "supplier_inactive", "name_mismatch",
+      "own_history_changed", "crowd_mismatch", "contract_conflict", "account_new", "supplier_young", "supplier_inactive", "name_mismatch",
       "change_request", "phone_differs", "email_domain_differs", "email_free_mail", "email_reply_to", "email_auth_failed", "email_pressure", "nothing_to_compare", "change_approved", "first_payment", "owner_unknown",
       "amount_unusual", "crowd_confirms", "own_history_ok", "owner_ok",
     ]);
     expect(SEVERITY).toEqual({
       owner_individual: "stop", owner_mismatch: "stop", account_not_found: "stop", iban_reported: "stop", homoglyphs: "stop", email_lookalike: "stop", bin_not_found: "stop",
       supplier_unreliable: "stop", own_history_changed: "stop", crowd_mismatch: "stop",
-      account_new: "check", supplier_young: "check", supplier_inactive: "check", name_mismatch: "check",
+      contract_conflict: "check", account_new: "check", supplier_young: "check", supplier_inactive: "check", name_mismatch: "check",
       change_request: "check", phone_differs: "check", email_domain_differs: "check", email_free_mail: "check", email_reply_to: "check",
       email_auth_failed: "check", email_pressure: "check", nothing_to_compare: "check",
       change_approved: "info", first_payment: "info", owner_unknown: "info", amount_unusual: "info",
@@ -443,5 +444,79 @@ describe("email signals", () => {
     const base = fingerprint(CLIENT, dala, { changeRequestText: null, phoneInDocument: null });
     expect(fingerprint(CLIENT, dala, mail("x@other.kz"))).not.toBe(base);
     expect(fingerprint(CLIENT, dala, { changeRequestText: null, phoneInDocument: null, email: null })).toBe(base);
+  });
+});
+
+describe("contract_conflict", () => {
+  const conflict = (extra: Partial<ContractConflict> = {}): ContractConflict => ({
+    kind: "third_party", source: "email", docQuote: "направить нашему партнёру", clause: "4.3", contractQuote: "Оплата третьим лицам не допускается.", ...extra,
+  });
+  const withContract = (conflicts: ContractConflict[], supplierBin = DALA_BIN): DocumentHints => ({
+    changeRequestText: null, phoneInDocument: null, contract: { supplierBin, conflicts, mode: "local" },
+  });
+  const run = (p: ParsedPayment, hints: DocumentHints, approvals?: Approval[]) => evaluate(p, bank, { ...opts, hints, approvals });
+
+  test("a conflict gives a check signal with the first conflict params and the count; it is the main reason without a stop", () => {
+    const r = run(dala, withContract([conflict(), conflict({ kind: "details_change", source: "invoice", clause: "4.2" })]));
+    expect(find(r, "contract_conflict")).toEqual({
+      id: "contract_conflict", severity: "check",
+      params: { source: "email", docQuote: "направить нашему партнёру", clause: "4.3", contractQuote: "Оплата третьим лицам не допускается.", count: 2 },
+    });
+    expect(r.verdict).toBe("check");
+    expect(r.main.id).toBe("contract_conflict");
+  });
+
+  test("no conflicts: no signal", () => {
+    expect(ids(run(dala, withContract([])))).not.toContain("contract_conflict");
+  });
+
+  test("with a stop present the main reason stays the stop", () => {
+    const r = run({ ...dala, iban: IND_IBAN }, withContract([conflict()]));
+    expect(ids(r)).toContain("contract_conflict");
+    expect(r.verdict).toBe("stop");
+    expect(r.main.id).toBe("owner_individual");
+  });
+
+  test("approval does not remove or demote contract_conflict", () => {
+    const approvals = [{ clientBin: CLIENT, bin: DALA_BIN, iban: DALA_IBAN2, approvedAt: "2026-11-26", approvedBy: "Сапарова А.К." }];
+    const r = run({ ...dala, iban: DALA_IBAN2 }, withContract([conflict()]), approvals);
+    expect(find(r, "contract_conflict")?.severity).toBe("check");
+  });
+
+  test("unknown BIN with hints.contract.supplierBin of a real contract: contact and call_contract come from that contract", () => {
+    // Поставщик есть в реестре, но договора с этим клиентом нет (как партнёр в демо-сценарии).
+    const unknown = newSupplierOtherBank;
+    const without = run(unknown, withContract([], "999999999999"));
+    expect(without.contact).toBeNull();
+    expect(without.action).toBe("find_phone");
+    const r = run(unknown, withContract([conflict()]));
+    expect(r.contact?.person).toBe("Ахметов Б.");
+    expect(r.action).toBe("call_contract");
+  });
+
+  test("hints.contract for a supplier with no contract with this client: no contact substitution", () => {
+    const b = build({ contracts: [{ clientBin: "999000000009", supplierBin: OTHER_CO_BIN, person: "Чужой П.", role: "директор", phone: "+7 700 000 00 00", email: "a@b.kz", source: "договор", paymentTerms: [] }] });
+    const r = evaluate(newSupplierOtherBank, b, { ...opts, hints: withContract([conflict()], OTHER_CO_BIN) });
+    expect(r.contact).toBeNull();
+    expect(r.action).not.toBe("call_contract");
+  });
+
+  test("a substituted contract feeds phone_differs and the email domain checks", () => {
+    // Поставщик есть в реестре, но договора с этим клиентом нет (как партнёр в демо-сценарии).
+    const unknown = newSupplierOtherBank;
+    const hints: DocumentHints = {
+      ...withContract([]), phoneInDocument: "+7 777 000 00 00",
+      email: { fromAddress: "x@other.kz", replyTo: null, authFailed: false, pressure: [] },
+    };
+    const r = run(unknown, hints);
+    expect(ids(r)).toContain("phone_differs");
+    expect(ids(r)).toContain("email_domain_differs");
+  });
+
+  test("fingerprint depends on the contract hints", () => {
+    const base = fingerprint(CLIENT, dala, { changeRequestText: null, phoneInDocument: null });
+    expect(fingerprint(CLIENT, dala, withContract([conflict()]))).not.toBe(base);
+    expect(fingerprint(CLIENT, dala, withContract([conflict()]))).not.toBe(fingerprint(CLIENT, dala, withContract([])));
+    expect(fingerprint(CLIENT, dala, { changeRequestText: null, phoneInDocument: null, contract: null })).toBe(base);
   });
 });

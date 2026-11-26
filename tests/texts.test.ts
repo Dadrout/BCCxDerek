@@ -36,6 +36,7 @@ const PARAMS: Record<SignalId, Record<string, string | number>> = {
   email_reply_to: { replyTo: "pay@evil.kz" },
   email_auth_failed: {},
   email_pressure: { quote: "оплатите срочно", count: 2 },
+  contract_conflict: { source: "email", docQuote: "направить нашему партнёру", clause: "4.3", contractQuote: "Оплата третьим лицам не допускается.", count: 1 },
 };
 const sig = (id: SignalId, params = PARAMS[id]): Signal => ({ id, severity: SEVERITY[id], params });
 

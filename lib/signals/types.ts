@@ -1,4 +1,5 @@
 // Типы движка сигналов. Порядок SIGNAL_ORDER — приоритет: первый сигнал наивысшей серьёзности становится главной причиной.
+import type { ContractConflict } from "@/lib/contract/compare";
 import type { Pressure } from "@/lib/email/pressure";
 import type { FieldError } from "./validate.ts";
 
@@ -13,6 +14,7 @@ export const SIGNAL_ORDER = [
   "supplier_unreliable",
   "own_history_changed",
   "crowd_mismatch",
+  "contract_conflict",
   "account_new",
   "supplier_young",
   "supplier_inactive",
@@ -49,6 +51,7 @@ export const SEVERITY: Record<SignalId, Severity> = {
   supplier_unreliable: "stop",
   own_history_changed: "stop",
   crowd_mismatch: "stop",
+  contract_conflict: "check",
   account_new: "check",
   supplier_young: "check",
   supplier_inactive: "check",
@@ -85,8 +88,11 @@ export type CheckOutcome =
 // Подсказки из приложенного письма (.eml): отправитель, Reply-To, проверка подлинности, давление в тексте.
 export type EmailHints = { fromAddress: string; replyTo: string | null; authFailed: boolean; pressure: Pressure[] };
 
+// Сравнение счёта и письма с условиями оплаты договора: БИН поставщика, найденные расхождения, чем найдены (ИИ или правила).
+export type ContractHints = { supplierBin: string; conflicts: ContractConflict[]; mode: "ai" | "local" };
+
 // Подсказки из приложенного PDF и письма (необязательно).
-export type DocumentHints = { changeRequestText: string | null; phoneInDocument: string | null; email?: EmailHints | null };
+export type DocumentHints = { changeRequestText: string | null; phoneInDocument: string | null; email?: EmailHints | null; contract?: ContractHints | null };
 
 // Утверждённая вторым сотрудником смена реквизитов (хранилище — задача 4).
 export type Approval = { clientBin: string; bin: string; iban: string; approvedAt: string; approvedBy: string };

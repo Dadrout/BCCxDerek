@@ -92,6 +92,32 @@ describe("api", () => {
     expect(badBody.signals.map((s: { id: string }) => s.id).filter((id: string) => id.startsWith("email_"))).toEqual([]);
   });
 
+  test("hints.contract changes the fingerprint; malformed hints.contract is treated as no contract", async () => {
+    const base = { changeRequestText: null, phoneInDocument: null };
+    const conflict = { kind: "third_party", source: "email", docQuote: "направить нашему партнёру", clause: "4.3", contractQuote: "Оплата третьим лицам не допускается." };
+    const contract = (conflicts: unknown[]) => ({ supplierBin: DALA.bin, mode: "local", conflicts });
+    const plain = await (await checkPOST(json("check", { fields: dalaFields, hints: base }))).json();
+    const withC = await (await checkPOST(json("check", { fields: dalaFields, hints: { ...base, contract: contract([conflict]) } }))).json();
+    expect(withC.fingerprint).not.toBe(plain.fingerprint);
+    expect(withC.signals.map((s: { id: string }) => s.id)).toContain("contract_conflict");
+    const bads = [
+      contract([{ ...conflict, kind: "other" }]),
+      contract(Array(50).fill(conflict)),
+      contract([{ ...conflict, docQuote: "x".repeat(5000) }]),
+      contract([{ ...conflict, clause: 4.3 }]),
+      { ...contract([conflict]), supplierBin: "123" },
+      { ...contract([conflict]), mode: "x" },
+      "junk",
+    ];
+    for (const bad of bads) {
+      const res = await checkPOST(json("check", { fields: dalaFields, hints: { ...base, contract: bad } }));
+      expect(res.status).toBe(200);
+      const b = await res.json();
+      expect(b.fingerprint).toBe(plain.fingerprint);
+      expect(b.signals.map((s: { id: string }) => s.id)).not.toContain("contract_conflict");
+    }
+  });
+
   test("hints.email without replyTo is accepted as replyTo null", async () => {
     const base = { changeRequestText: null, phoneInDocument: null };
     const email = { fromAddress: "x@other.kz", authFailed: false, pressure: [] };
