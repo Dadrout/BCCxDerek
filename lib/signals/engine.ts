@@ -25,7 +25,6 @@ const SUPPLIER_YOUNG_DAYS = 90;
 const CROWD_MISMATCH_MIN = 5;
 const LEGAL_FORMS = new Set(["тоо", "ао", "ип"]);
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SEVERITY_RANK: Record<Severity, number> = { stop: 0, check: 1, info: 2, ok: 3 };
 
 // Целые дни от даты (YYYY-MM-DD) до DEMO_TODAY.
 function daysBeforeToday(date: string): number {
@@ -75,9 +74,11 @@ export function evaluate(
   const found = new Map<SignalId, Signal["params"]>();
   const add = (id: SignalId, params: Signal["params"] = {}) => found.set(id, params);
 
-  // Владелец счёта: проверяем только счета BCC.
-  if (p.iban.slice(4, 7) === BCC_CODE && bank.accounts.has(p.iban)) {
-    const account = bank.accounts.get(p.iban)!;
+  // Владелец счёта: проверяем только счета BCC. Счёта BCC нет в базе — значит, такого счёта не существует.
+  const account = bank.accounts.get(p.iban);
+  if (p.iban.slice(4, 7) === BCC_CODE && !account) {
+    add("account_not_found", { bankName: bankByIban(p.iban) ?? "" });
+  } else if (account) {
     if (account.ownerId === p.bin) add("owner_ok");
     else if (account.ownerType === "individual") add("owner_individual");
     else add("owner_mismatch", { name: p.name });
@@ -143,9 +144,10 @@ export function evaluate(
     severity: SEVERITY[id],
     params: found.get(id)!,
   }));
-  const top = Math.min(...signals.map((s) => SEVERITY_RANK[s.severity]));
-  const main = signals.find((s) => SEVERITY_RANK[s.severity] === top)!;
-  const verdict: Verdict = main.severity === "stop" ? "stop" : main.severity === "check" ? "check" : "ok";
+  // Вердикт по самому серьёзному уровню; главная причина объясняет именно его (info вердиктом не бывает).
+  const has = (level: Severity) => signals.some((s) => s.severity === level);
+  const verdict: Verdict = has("stop") ? "stop" : has("check") ? "check" : "ok";
+  const main = signals.find((s) => s.severity === verdict)!;
   const contact: Contact | null = contract
     ? { person: contract.person, role: contract.role, phone: contract.phone, source: contract.source }
     : null;

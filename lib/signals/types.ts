@@ -4,6 +4,7 @@ import type { FieldError } from "./validate.ts";
 export const SIGNAL_ORDER = [
   "owner_individual",
   "owner_mismatch",
+  "account_not_found",
   "iban_reported",
   "homoglyphs",
   "bin_not_found",
@@ -33,6 +34,7 @@ export type Severity = "stop" | "check" | "info" | "ok";
 export const SEVERITY: Record<SignalId, Severity> = {
   owner_individual: "stop",
   owner_mismatch: "stop",
+  account_not_found: "stop",
   iban_reported: "stop",
   homoglyphs: "stop",
   bin_not_found: "stop",

@@ -73,13 +73,13 @@ const find = (r: ReturnType<typeof evaluate>, id: SignalId) => r.signals.find((s
 describe("types", () => {
   test("SIGNAL_ORDER lists every signal in priority order with spec severities", () => {
     expect(SIGNAL_ORDER).toEqual([
-      "owner_individual", "owner_mismatch", "iban_reported", "homoglyphs", "bin_not_found", "supplier_unreliable",
+      "owner_individual", "owner_mismatch", "account_not_found", "iban_reported", "homoglyphs", "bin_not_found", "supplier_unreliable",
       "own_history_changed", "crowd_mismatch", "account_new", "supplier_young", "supplier_inactive", "name_mismatch",
       "change_request", "phone_differs", "nothing_to_compare", "change_approved", "first_payment", "owner_unknown",
       "amount_unusual", "crowd_confirms", "own_history_ok", "owner_ok",
     ]);
     expect(SEVERITY).toEqual({
-      owner_individual: "stop", owner_mismatch: "stop", iban_reported: "stop", homoglyphs: "stop", bin_not_found: "stop",
+      owner_individual: "stop", owner_mismatch: "stop", account_not_found: "stop", iban_reported: "stop", homoglyphs: "stop", bin_not_found: "stop",
       supplier_unreliable: "stop", own_history_changed: "stop", crowd_mismatch: "stop",
       account_new: "check", supplier_young: "check", supplier_inactive: "check", name_mismatch: "check",
       change_request: "check", phone_differs: "check", nothing_to_compare: "check",
@@ -117,6 +117,21 @@ describe("one test per signal", () => {
     const r = evaluate({ ...dala, iban: CO_IBAN }, bank, opts);
     expect(find(r, "owner_mismatch")).toBeDefined();
     expect(ids(evaluate({ ...dala, iban: IND_IBAN }, bank, opts))).not.toContain("owner_mismatch");
+  });
+
+  test("account_not_found: BCC IBAN missing from accounts replaces owner signals; not for a known BCC account", () => {
+    const ghost = makeKzIban("856", "0000099900044");
+    const r = evaluate({ ...dala, iban: ghost }, bank, opts);
+    expect(find(r, "account_not_found")?.params).toEqual({ bankName: "Банк ЦентрКредит" });
+    for (const id of ["owner_unknown", "owner_ok", "owner_individual", "owner_mismatch", "account_new"] as const) {
+      expect(ids(r)).not.toContain(id);
+    }
+    expect(r.verdict).toBe("stop");
+    expect(r.main.id).toBe("account_not_found");
+    expect(r.action).toBe("call_contract");
+    expect(evaluate({ ...newSupplierOtherBank, iban: ghost }, bank, opts).action).toBe("find_phone");
+    expect(ids(evaluate(dala, bank, opts))).not.toContain("account_not_found");
+    expect(ids(evaluate(newSupplierOtherBank, bank, opts))).not.toContain("account_not_found");
   });
 
   test("iban_reported: complaints on this IBAN; not on a clean IBAN", () => {
@@ -274,6 +289,14 @@ describe("rules", () => {
     expect(old).not.toContain("crowd_confirms");
     const inside = build({ payments: [pay(CLIENT, NEW_BIN, KASPI_IBAN, "2025-12-12")] });
     expect(ids(evaluate(newSupplierOtherBank, inside, opts))).toContain("own_history_ok");
+  });
+
+  test("ok verdict's main is an ok signal: amount_unusual + crowd_confirms → main crowd_confirms", () => {
+    const r = evaluate({ ...dala, amount: 900000 }, bank, opts);
+    expect(ids(r)).toEqual(["amount_unusual", "crowd_confirms", "own_history_ok", "owner_ok"]);
+    expect(r.verdict).toBe("ok");
+    expect(r.main.id).toBe("crowd_confirms");
+    expect(r.action).toBe("pay");
   });
 
   test("main reason follows SIGNAL_ORDER: owner_individual beats crowd_mismatch", () => {
