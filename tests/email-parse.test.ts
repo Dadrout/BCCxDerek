@@ -62,6 +62,19 @@ test("looksLikeEml", () => {
   expect(looksLikeEml(Buffer.from("%PDF-1.4\nFrom: x\n"))).toBe(false);
 });
 
+test("looksLikeEml: длинная шапка (больше 10 КБ) до From:", () => {
+  const lines: string[] = [];
+  for (let i = 0; i < 120; i++) {
+    lines.push(`Received: from mx${i}.example.com by mail.example.com; ${"x".repeat(40)}`);
+    lines.push(`X-MS-Exchange-Organization-Test-${i}: ${"y".repeat(40)}`);
+  }
+  const eml = `${lines.join("\r\n")}\r\nFrom: a@b.kz\r\nSubject: s\r\n\r\nbody\r\n`;
+  expect(eml.indexOf("From: a@b.kz")).toBeGreaterThan(10 * 1024);
+  expect(looksLikeEml(Buffer.from(eml))).toBe(true);
+  // From: в теле письма, после пустой строки, не считается
+  expect(looksLikeEml(Buffer.from("Subject: x\r\n\r\nFrom: y\r\n"))).toBe(false);
+});
+
 test("From без имени", async () => {
   const m = await parseEml(Buffer.from("From: buh@DalaTrans.kz\r\nSubject: x\r\n\r\nhi\r\n"));
   expect(m.fromAddress).toBe("buh@dalatrans.kz");

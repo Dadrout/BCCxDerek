@@ -52,8 +52,15 @@ export async function parseEml(buf: Buffer): Promise<ParsedEmail> {
   };
 }
 
-/** Похоже на .eml: в первых 8 КБ есть строка заголовка From:, и это не PDF. */
+/**
+ * Похоже на .eml: в блоке заголовков (до первой пустой строки, не больше 256 КБ)
+ * есть From:, Received:, MIME-Version:, Return-Path: или Delivered-To:, и это не PDF.
+ * Выгрузки Gmail и Microsoft 365 бывают с очень длинной шапкой до From:.
+ */
 export function looksLikeEml(buf: Buffer): boolean {
   if (buf.subarray(0, 5).toString("latin1") === "%PDF-") return false;
-  return /^From:/im.test(buf.subarray(0, 8192).toString("latin1"));
+  const head = buf.subarray(0, 256 * 1024).toString("latin1");
+  const blank = head.search(/\r?\n\r?\n/);
+  const block = blank === -1 ? head : head.slice(0, blank);
+  return /^(From|Received|MIME-Version|Return-Path|Delivered-To):/im.test(block);
 }

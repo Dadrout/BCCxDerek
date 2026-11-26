@@ -19,7 +19,7 @@ const TONE: Record<"stop" | "check", string> = {
   stop: "bg-stop-wash text-stop",
   check: "bg-hold-wash text-hold",
 };
-const AUTH_CHIP = { pass: "bg-go-wash text-go", fail: "bg-stop-wash text-stop", none: "bg-cell text-ink-3" } as const;
+const AUTH_CHIP = { pass: "bg-cell text-ink-3", fail: "bg-stop-wash text-stop", none: "bg-cell text-ink-3" } as const;
 const LOCALE: Record<Lang, string> = { kk: "kk-KZ", ru: "ru-RU", en: "en-GB" };
 
 // Регулярное выражение для цитат: спецсимволы экранируем, любые пробелы считаем одним \s+,

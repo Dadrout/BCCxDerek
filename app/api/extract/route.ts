@@ -42,7 +42,11 @@ async function handleEmail(buf: Buffer) {
     return NextResponse.json({ error: "Не удалось прочитать письмо", code: "bad_email" }, { status: 400 });
   }
   const text = parsed.text.slice(0, MAX_EMAIL_TEXT);
-  const { items, mode } = await findPressure(text);
+  // Если во вложении есть PDF, чтение счёта и поиск давления идут параллельно.
+  const [{ items, mode }, extraction] = await Promise.all([
+    findPressure(text),
+    parsed.pdf ? extract(parsed.pdf.content) : Promise.resolve(null),
+  ]);
   const email: EmailView = {
     fromName: parsed.fromName,
     fromAddress: parsed.fromAddress,
@@ -60,12 +64,11 @@ async function handleEmail(buf: Buffer) {
     authFailed: Object.values(parsed.auth).some((v) => v === "fail"),
     pressure: items,
   };
-  if (!parsed.pdf) {
+  if (!parsed.pdf || !extraction) {
     // Письма без счёта во вложении — не ошибка сервера: экран покажет, что читать нечего.
     const hints: DocumentHints = { changeRequestText: null, phoneInDocument: null, email: emailHints };
     return NextResponse.json({ fields: { ...EMPTY_FIELDS }, hints, extraction: null, email, pdfBase64: null, code: "no_pdf_in_email" });
   }
-  const extraction = await extract(parsed.pdf.content);
   const { fields, hints } = fromExtraction(extraction);
   return NextResponse.json({
     fields,

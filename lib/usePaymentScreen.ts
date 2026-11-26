@@ -127,7 +127,8 @@ export function usePaymentScreen(lang: Lang) {
           const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
           objectUrl.current = url;
           setSrc(url);
-          if (typeof j.pdfName === "string" && j.pdfName) setDoc({ kind: "upload", name: j.pdfName });
+          // Для письма-сценария заголовок остаётся названием сценария; у загруженного письма — имя вложения.
+          if (typeof j.pdfName === "string" && j.pdfName) setDoc((d) => (d?.kind === "sample" ? d : { kind: "upload", name: j.pdfName }));
         } else {
           setSrc(null);
         }
@@ -179,6 +180,9 @@ export function usePaymentScreen(lang: Lang) {
     }
     setDoc({ kind: "upload", name: file.name });
     setScenario(null);
+    // Как в pickScenario/clearAll: прежние подсказки и поля не должны пережить неудачную загрузку.
+    setFields(EMPTY_FIELDS);
+    setHints(undefined);
     setExtraction(null);
     setEmail(null);
     setUnsure([]);
