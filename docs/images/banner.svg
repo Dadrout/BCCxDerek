@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-label="Derek — банк останавливает платёж по поддельному счёту">
+  <rect width="1280" height="420" fill="#0A1424"/>
+  <!-- Диагональные осколки, как в презентации -->
+  <polygon points="900,0 1280,0 1280,420 720,420" fill="#1E5BFF"/>
+  <polygon points="1110,0 1280,0 1280,230" fill="#0A1424" fill-opacity="0.35"/>
+  <polygon points="830,0 856,0 676,420 650,420" fill="#1C3152"/>
+  <!-- Текст -->
+  <g font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+    <rect x="72" y="82" width="36" height="5" fill="#8EADFF"/>
+    <text x="124" y="91" font-size="16" font-weight="700" letter-spacing="3" fill="#8EADFF">ITU HACKATHON 2026 · КЕЙС БАНКА ЦЕНТРКРЕДИТ</text>
+    <text x="68" y="196" font-size="104" font-weight="800" letter-spacing="-2" fill="#EEF2F8">Derek</text>
+    <text x="72" y="252" font-size="28" font-weight="600" fill="#EEF2F8">Банк останавливает платёж по поддельному счёту</text>
+    <text x="72" y="290" font-size="28" font-weight="600" fill="#8EADFF">в момент, когда бухгалтер нажимает «Оплатить»</text>
+    <text x="72" y="356" font-size="17" fill="#93A3BE">BCC Business · письмо и договор · kk / ru / en · офлайн</text>
+  </g>
+  <!-- Карточка вердикта -->
+  <g font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+    <rect x="884" y="112" width="330" height="196" fill="#E5322D"/>
+    <circle cx="914" cy="146" r="11" fill="none" stroke="#FFE1DF" stroke-width="2.5"/>
+    <path d="M909 141 L919 151 M919 141 L909 151" stroke="#FFE1DF" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="934" y="152" font-size="15" font-weight="700" letter-spacing="2" fill="#FFE1DF">ПЛАТЁЖ ОСТАНОВЛЕН</text>
+    <text x="906" y="196" font-size="25" font-weight="700" fill="#FFFFFF">Счёт принадлежит</text>
+    <text x="906" y="228" font-size="25" font-weight="700" fill="#FFFFFF">частному лицу,</text>
+    <text x="906" y="260" font-size="25" font-weight="700" fill="#FFFFFF">а не фирме</text>
+  </g>
+</svg>
