@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -41,10 +41,16 @@ const sig = (o: { signals: Sig[] }, id: string) => o.signals.find((x) => x.id ==
 
 describe("scenarios", () => {
   test("order and stage flags", () => {
-    expect(SCENARIOS.map((s) => s.id)).toEqual(["normal", "swap", "new_to_you", "young_firm", "blurry", "manual", "known_new"]);
-    expect(SCENARIOS.filter((s) => s.onStage).map((s) => s.id)).toEqual(["normal", "swap", "new_to_you"]);
+    expect(SCENARIOS.map((s) => s.id)).toEqual(["normal", "swap", "email", "new_to_you", "young_firm", "blurry", "manual", "known_new"]);
+    expect(SCENARIOS.filter((s) => s.onStage).map((s) => s.id)).toEqual(["normal", "swap", "email", "new_to_you"]);
     for (const id of ["new_to_you", "young_firm", "manual"]) expect(sc(id).sample).toBeUndefined();
     for (const id of ["normal", "swap", "blurry", "known_new"]) expect(sc(id).sample).toBeTruthy();
+  });
+
+  test("email scenario has an existing sample file", () => {
+    expect(sc("email").onStage).toBe(true);
+    expect(sc("email").sample).toBe("05_dala_pismo.eml");
+    expect(existsSync(join(process.cwd(), "public", "samples", "05_dala_pismo.eml"))).toBe(true);
   });
 
   test("titles and hints exist in all languages", () => {

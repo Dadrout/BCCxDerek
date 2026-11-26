@@ -3,7 +3,7 @@ import { DALA_SHOWN, TAU_SHOWN as TAU, ZHYLDAM_SHOWN as ZHYLDAM } from "./demo-c
 import type { DocumentHints } from "./signals/types.ts";
 import type { PaymentFields } from "./signals/validate.ts";
 
-export type ScenarioId = "normal" | "swap" | "new_to_you" | "young_firm" | "blurry" | "manual" | "known_new";
+export type ScenarioId = "normal" | "swap" | "email" | "new_to_you" | "young_firm" | "blurry" | "manual" | "known_new";
 
 export type Scenario = {
   id: ScenarioId;
@@ -20,6 +20,7 @@ const noHints: DocumentHints = { changeRequestText: null, phoneInDocument: null 
 export const SCENARIOS: Scenario[] = [
   { id: "normal", sample: "01_dala_obychnyj.pdf", onStage: true },
   { id: "swap", sample: "02_dala_podmena_iban.pdf", onStage: true },
+  { id: "email", sample: "05_dala_pismo.eml", onStage: true },
   {
     id: "new_to_you",
     fields: { name: TAU.name, bin: TAU.bin, iban: TAU.invoiceIban, amount: "1250000", purpose: "Оплата по счёту № ТС-0412" },

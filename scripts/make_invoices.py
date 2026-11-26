@@ -100,6 +100,20 @@ ROUTE = [("Перевозка груза Алматы — Астана, тент
          ("Перевозка груза Алматы — Шымкент, тент 20 т", 2, 120000),
          ("Погрузо-разгрузочные работы", 1, 105000)]
 
+# 05: тот же поставщик, но счёт в другом банке (к письму 05_dala_pismo.eml)
+ROUTE_05 = [ROUTE[0], ROUTE[1], ("Погрузо-разгрузочные работы", 1, 55000)]  # итого 790 000 ₸
+
+def make_05():
+    sup = dict(SUPPLIER, iban=kz_iban("722", "0000044455566"), bank="АО «Kaspi Bank»", bik="CASPKZKA")
+    return invoice(f"{OUT}/05_dala_schet_drugoj_bank.pdf", sup, "ДТ-1201", "09.12.2026", ROUTE_05,
+        note="В связи со сменой обслуживающего банка просим производить оплату по новым реквизитам.")
+
+if len(sys.argv) > 1 and sys.argv[1] == "05":
+    # Только счёт 05: файлы 01–04 не трогаем, чтобы они остались байт-в-байт прежними.
+    os.makedirs(OUT, exist_ok=True)
+    print("Сумма 05:", make_05())
+    raise SystemExit(0)
+
 os.makedirs(OUT, exist_ok=True)
 t = invoice(f"{OUT}/01_dala_obychnyj.pdf", SUPPLIER, "ДТ-1124", "18.11.2026", ROUTE)
 invoice(f"{OUT}/02_dala_podmena_iban.pdf", SUPPLIER, "ДТ-1124", "18.11.2026", ROUTE,

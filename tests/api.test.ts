@@ -175,5 +175,45 @@ describe("api", () => {
       expect(j.fields.iban).not.toBe("");
       expect(j.extraction.mode).toBe("local");
     });
+
+    test("email sample: parsed email, pressure, PDF fields; check stops on lookalike", async () => {
+      process.env.DEREK_STAGE = "1";
+      process.env.GROQ_API_KEY = "fake";
+      globalThis.fetch = (() => { throw new Error("network call in stage mode"); }) as typeof fetch;
+      const fd = new FormData();
+      fd.set("sample", "05_dala_pismo.eml");
+      const r = await extractPOST(new Request("http://x/api/extract", { method: "POST", body: fd }));
+      expect(r.status).toBe(200);
+      const j = await r.json();
+      expect(j.email.fromAddress).toBe("buh@dalatrans-kz.com");
+      expect(j.hints.email.pressure.length).toBeGreaterThanOrEqual(2);
+      expect(j.email.pressureMode).toBe("local");
+      expect(j.fields.bin).toBe(DALA.bin);
+      expect(Buffer.from(j.pdfBase64, "base64").subarray(0, 5).toString()).toBe("%PDF-");
+      const rc = await checkPOST(json("check", { fields: j.fields, hints: j.hints }));
+      const c = await rc.json();
+      expect(c.verdict).toBe("stop");
+      expect(c.main.id).toBe("email_lookalike");
+    });
+
+    test("eml without PDF → 200 no_pdf_in_email; random bytes → 400 not_pdf", async () => {
+      process.env.DEREK_STAGE = "1";
+      const eml = ["From: a@b.kz", "To: c@d.kz", "Subject: Hi", "Content-Type: text/plain; charset=utf-8", "", "Счёт позже.", ""].join("\r\n");
+      const fd = new FormData();
+      fd.set("file", new File([eml], "a.eml", { type: "message/rfc822" }));
+      const r = await extractPOST(new Request("http://x/api/extract", { method: "POST", body: fd }));
+      expect(r.status).toBe(200);
+      const j = await r.json();
+      expect(j.code).toBe("no_pdf_in_email");
+      expect(j.fields).toEqual({ name: "", bin: "", iban: "", amount: "", purpose: "" });
+      expect(j.extraction).toBeNull();
+      expect(j.pdfBase64).toBeNull();
+      expect(j.email.fromAddress).toBe("a@b.kz");
+      const fd2 = new FormData();
+      fd2.set("file", new File([new Uint8Array([1, 2, 3, 250, 251])], "x.bin"));
+      const r2 = await extractPOST(new Request("http://x/api/extract", { method: "POST", body: fd2 }));
+      expect(r2.status).toBe(400);
+      expect((await r2.json()).code).toBe("not_pdf");
+    });
   });
 });

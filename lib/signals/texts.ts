@@ -290,11 +290,12 @@ const FIELD_ERRORS: Record<Lang, FE> = {
 export const fieldErrorText = (e: FieldError, lang: Lang): string => FIELD_ERRORS[lang][e.field][e.code];
 
 // Названия и подсказки демо-сценариев.
-type ScenarioKey = "normal" | "swap" | "new_to_you" | "young_firm" | "blurry" | "manual" | "known_new";
+type ScenarioKey = "normal" | "swap" | "email" | "new_to_you" | "young_firm" | "blurry" | "manual" | "known_new";
 const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: string }>> = {
   ru: {
     normal: { title: "Обычный счёт", hint: "Знакомый поставщик, сумма выросла, IBAN прежний" },
     swap: { title: "Подмена IBAN", hint: "Всё как обычно, кроме номера счёта: он принадлежит частному лицу" },
+    email: { title: "Письмо со счётом", hint: "Счёт пришёл письмом с адреса, похожего на адрес поставщика" },
     new_to_you: { title: "Новый для вас поставщик", hint: "Вы ему ещё не платили, а другие клиенты банка платят на другой счёт" },
     young_firm: { title: "Совсем новая фирма", hint: "Фирма и счёт открыты несколько дней назад" },
     blurry: { title: "Размытый скан", hint: `Название, БИН и сумма подставлены, номер счёта введите сами. Ошибка в одной цифре (например, ${DALA_IBAN_TYPO}) будет поймана по контрольной сумме` },
@@ -304,6 +305,7 @@ const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: st
   kk: {
     normal: { title: "Қалыпты шот", hint: "Таныс жеткізуші, сома өсті, IBAN бұрынғы" },
     swap: { title: "IBAN ауыстырылған", hint: "Бәрі әдеттегідей, тек шот нөмірі басқа: ол жеке тұлғаға тиесілі" },
+    email: { title: "Шот хатпен келді", hint: "Шот жеткізушінің мекенжайына ұқсас мекенжайдан хатпен келді" },
     new_to_you: { title: "Сіз үшін жаңа жеткізуші", hint: "Сіз оған әлі төлемегенсіз, ал банктің басқа клиенттері басқа шотқа төлейді" },
     young_firm: { title: "Мүлде жаңа фирма", hint: "Фирма мен шот бірнеше күн бұрын ашылған" },
     blurry: { title: "Бұлыңғыр скан", hint: `Атауы, БСН және сома қойылған, шот нөмірін өзіңіз енгізіңіз. Бір цифрдағы қате (мысалы, ${DALA_IBAN_TYPO}) бақылау сомасы арқылы ұсталады` },
@@ -313,6 +315,7 @@ const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: st
   en: {
     normal: { title: "Regular invoice", hint: "Known supplier, higher amount, same IBAN" },
     swap: { title: "Swapped IBAN", hint: "Everything as usual except the account number: it belongs to a private person" },
+    email: { title: "Invoice by email", hint: "The invoice came by email from an address that looks like the supplier's" },
     new_to_you: { title: "New to you", hint: "You have never paid this company, and other bank customers pay it to a different account" },
     young_firm: { title: "Brand-new company", hint: "The company and its account were opened a few days ago" },
     blurry: { title: "Blurry scan", hint: `The name, BIN and amount are filled in; type the account number yourself. A one-digit mistake (for example ${DALA_IBAN_TYPO}) is caught by the checksum` },
