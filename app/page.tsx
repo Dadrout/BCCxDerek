@@ -56,7 +56,9 @@ export default function Home() {
   let ibanColor: Highlight["color"] | null = null;
   if (v && ex && s.src) {
     // Номер счёта подсвечиваем, только если поле не правили после чтения счёта.
-    if (ex.iban.value && ex.iban.value === s.fields.iban) {
+    // Сравниваем без пробелов: ИИ отдаёт номер слитно, а в форме он сгруппирован по 4 символа.
+    const bare = (x: string) => x.replace(/\s+/g, "").toUpperCase();
+    if (ex.iban.value && bare(ex.iban.value) === bare(s.fields.iban)) {
       ibanColor = IBAN_COLOR[v.verdict];
       highlights.push({ needle: ex.iban.value, color: ibanColor });
     }
