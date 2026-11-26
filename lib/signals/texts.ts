@@ -1,6 +1,8 @@
 // Тексты сигналов, вердиктов, действий и ошибок полей на трёх языках. Безопасно для клиентских компонентов.
 // Правило: простые слова («счёт», «номер счёта»), без жаргона и без обещаний «100% безопасно».
 import { pluralRu, type Lang } from "@/lib/i18n";
+import { DALA_SHOWN } from "@/lib/demo-client";
+import { formatIban } from "@/lib/iban";
 import type { Action, Signal, SignalId, Verdict } from "./types.ts";
 import type { FieldError } from "./validate.ts";
 
@@ -27,20 +29,29 @@ const kkInBank = (name: string): string => {
 const enBankNames: Record<string, string> = { "Банк ЦентрКредит": "Bank CenterCredit", "Народный Банк Казахстана": "Halyk Bank" };
 const enBank = (name: string): string => enBankNames[name] ?? name;
 
+// Кавычки вокруг названия: если в самом названии уже есть «», внешние не добавляем («ТОО «Дала»», а не «ТОО «Дала»»»).
+const quoted = (name: string): string => (name.includes("«") ? name : `«${name}»`);
+const quotedEn = (name: string): string => (name.includes("«") ? name : `"${name}"`);
+
+// Реквизиты Дала Транс для подсказок сценариев.
+const DALA_IBAN = formatIban(DALA_SHOWN.iban);
+// Тот же счёт с ошибкой в последней цифре: контрольная сумма её ловит.
+const DALA_IBAN_TYPO = formatIban(DALA_SHOWN.iban.slice(0, -1) + String((Number(DALA_SHOWN.iban.slice(-1)) + 1) % 10));
+
 const RU: Record<SignalId, Fn> = {
-  owner_mismatch: (p) => `Этот счёт принадлежит не «${s(p.name)}», а другому лицу`,
+  owner_mismatch: (p) => `Этот счёт принадлежит не ${quoted(s(p.name))}, а другому лицу`,
   owner_individual: () => "Счёт принадлежит частному лицу, а не фирме",
   account_not_found: (p) => (s(p.bankName) ? `Такого счёта в ${ruInBank(s(p.bankName))} нет` : "Такого счёта в банке нет"),
   iban_reported: (p) => `На этот счёт уже поступали жалобы о мошенничестве (${n(p.count)} ${pluralRu(n(p.count), "жалоба", "жалобы", "жалоб")})`,
   homoglyphs: () => "В номере счёта русские буквы, похожие на латинские. Так маскируют подделку",
   bin_not_found: (p) => `Фирмы с БИН ${s(p.bin)} не существует`,
-  supplier_unreliable: (p) => `Фирма «${s(p.registryName)}» в списке неблагонадёжных налогоплательщиков`,
+  supplier_unreliable: (p) => `Фирма ${quoted(s(p.registryName))} в списке неблагонадёжных налогоплательщиков`,
   own_history_changed: (p) => `Вы ${n(p.count)} ${pluralRu(n(p.count), "раз", "раза", "раз")} платили этой фирме на другой счёт`,
   crowd_mismatch: (p) => `${n(p.count)} ${pluralRu(n(p.count), "клиент", "клиента", "клиентов")} банка ${pluralRu(n(p.count), "платит", "платят", "платят")} этой фирме на другой счёт`,
   account_new: (p) => `Счёт открыт ${n(p.days)} ${pluralRu(n(p.days), "день", "дня", "дней")} назад`,
   supplier_young: (p) => `Фирма зарегистрирована ${n(p.days)} ${pluralRu(n(p.days), "день", "дня", "дней")} назад`,
-  supplier_inactive: (p) => `Фирма «${s(p.registryName)}» числится бездействующей`,
-  name_mismatch: (p) => `По этому БИН зарегистрирована другая фирма: «${s(p.registryName)}»`,
+  supplier_inactive: (p) => `Фирма ${quoted(s(p.registryName))} числится бездействующей`,
+  name_mismatch: (p) => `По этому БИН зарегистрирована другая фирма: ${quoted(s(p.registryName))}`,
   change_request: (p) => `В счёте просят платить по новым реквизитам: «${s(p.text)}»`,
   phone_differs: (p) => `Телефон в счёте (${s(p.phone)}) не тот, что в договоре (${s(p.contractPhone)})`,
   nothing_to_compare: () => "Банку не с чем сравнить этого получателя",
@@ -54,19 +65,19 @@ const RU: Record<SignalId, Fn> = {
 };
 
 const KK: Record<SignalId, Fn> = {
-  owner_mismatch: (p) => `Бұл шот «${s(p.name)}» компаниясына емес, басқа тұлғаға тиесілі`,
+  owner_mismatch: (p) => `Бұл шот ${quoted(s(p.name))} компаниясына емес, басқа тұлғаға тиесілі`,
   owner_individual: () => "Шот фирмаға емес, жеке тұлғаға тиесілі",
   account_not_found: (p) => (s(p.bankName) ? `${kkInBank(s(p.bankName))} мұндай шот жоқ` : "Банкте мұндай шот жоқ"),
-  iban_reported: (p) => `Бұл шотқа қатысты алаяқтық туралы шағымдар бұрын түскен (${n(p.count)})`,
+  iban_reported: (p) => `Бұл шотқа қатысты алаяқтық туралы шағымдар бұрын түскен (${n(p.count)} шағым)`,
   homoglyphs: () => "Шот нөмірінде латынға ұқсайтын орыс әріптері бар. Жалғандықты осылай жасырады",
   bin_not_found: (p) => `БСН ${s(p.bin)} бар фирма жоқ`,
-  supplier_unreliable: (p) => `«${s(p.registryName)}» фирмасы сенімсіз салық төлеушілер тізімінде`,
+  supplier_unreliable: (p) => `${quoted(s(p.registryName))} фирмасы сенімсіз салық төлеушілер тізімінде`,
   own_history_changed: (p) => `Сіз бұл фирмаға ${n(p.count)} рет басқа шотқа төледіңіз`,
   crowd_mismatch: (p) => `Банктің ${n(p.count)} клиенті бұл фирмаға басқа шотқа төлейді`,
   account_new: (p) => `Шот ${n(p.days)} күн бұрын ашылған`,
   supplier_young: (p) => `Фирма ${n(p.days)} күн бұрын тіркелген`,
-  supplier_inactive: (p) => `«${s(p.registryName)}» фирмасы әрекетсіз болып саналады`,
-  name_mismatch: (p) => `Бұл БСН бойынша басқа фирма тіркелген: «${s(p.registryName)}»`,
+  supplier_inactive: (p) => `${quoted(s(p.registryName))} фирмасы әрекетсіз болып саналады`,
+  name_mismatch: (p) => `Бұл БСН бойынша басқа фирма тіркелген: ${quoted(s(p.registryName))}`,
   change_request: (p) => `Шотта жаңа деректемелермен төлеуді сұрайды: «${s(p.text)}»`,
   phone_differs: (p) => `Шоттағы телефон (${s(p.phone)}) шарттағы телефоннан (${s(p.contractPhone)}) өзгеше`,
   nothing_to_compare: () => "Банкке бұл алушыны салыстыратын ештеңе жоқ",
@@ -80,19 +91,19 @@ const KK: Record<SignalId, Fn> = {
 };
 
 const EN: Record<SignalId, Fn> = {
-  owner_mismatch: (p) => `This account does not belong to "${s(p.name)}" but to someone else`,
+  owner_mismatch: (p) => `This account does not belong to ${quotedEn(s(p.name))} but to someone else`,
   owner_individual: () => "The account belongs to a private person, not a company",
   account_not_found: (p) => (s(p.bankName) ? `There is no such account at ${enBank(s(p.bankName))}` : "There is no such account at the bank"),
   iban_reported: (p) => `Other customers have already reported this account for fraud (${n(p.count)} ${enPl(n(p.count), "report", "reports")})`,
   homoglyphs: () => "The account number contains Russian letters that look like Latin ones. This is a common way to disguise a fake",
   bin_not_found: (p) => `No company with BIN ${s(p.bin)} exists`,
-  supplier_unreliable: (p) => `"${s(p.registryName)}" is on the list of unreliable taxpayers`,
+  supplier_unreliable: (p) => `${quotedEn(s(p.registryName))} is on the list of unreliable taxpayers`,
   own_history_changed: (p) => `You paid this company ${n(p.count)} ${enPl(n(p.count), "time", "times")} to a different account`,
   crowd_mismatch: (p) => `${n(p.count)} ${enPl(n(p.count), "customer", "customers")} of the bank ${enPl(n(p.count), "pays", "pay")} this company to a different account`,
   account_new: (p) => `The account was opened ${n(p.days)} ${enPl(n(p.days), "day", "days")} ago`,
   supplier_young: (p) => `The company was registered ${n(p.days)} ${enPl(n(p.days), "day", "days")} ago`,
-  supplier_inactive: (p) => `"${s(p.registryName)}" is listed as inactive`,
-  name_mismatch: (p) => `A different company is registered under this BIN: "${s(p.registryName)}"`,
+  supplier_inactive: (p) => `${quotedEn(s(p.registryName))} is listed as inactive`,
+  name_mismatch: (p) => `A different company is registered under this BIN: ${quotedEn(s(p.registryName))}`,
   change_request: (p) => `The invoice asks you to pay to new details: "${s(p.text)}"`,
   phone_differs: (p) => `The phone number on the invoice (${s(p.phone)}) is not the one in the contract (${s(p.contractPhone)})`,
   nothing_to_compare: () => "The bank has nothing to compare this recipient with",
@@ -268,8 +279,8 @@ const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: st
     swap: { title: "Подмена IBAN", hint: "Всё как обычно, кроме номера счёта: он принадлежит частному лицу" },
     new_to_you: { title: "Новый для вас поставщик", hint: "Вы ему ещё не платили, а другие клиенты банка платят на другой счёт" },
     young_firm: { title: "Совсем новая фирма", hint: "Фирма и счёт открыты несколько дней назад" },
-    blurry: { title: "Размытый скан", hint: "Реквизиты не читаются уверенно, их придётся ввести руками" },
-    manual: { title: "Ввести вручную", hint: "Впишите: ТОО «Дала Транс Логистик», БИН 180340021457 и номер счёта из карточки поставщика" },
+    blurry: { title: "Размытый скан", hint: `Название, БИН и сумма подставлены, номер счёта введите сами. Ошибка в одной цифре (например, ${DALA_IBAN_TYPO}) будет поймана по контрольной сумме` },
+    manual: { title: "Ввести вручную", hint: `Впишите: ${DALA_SHOWN.name}, БИН ${DALA_SHOWN.bin}, счёт ${DALA_IBAN}` },
     known_new: { title: "Новый поставщик", hint: "Вы ему ещё не платили, но другие клиенты банка платят на тот же счёт" },
   },
   kk: {
@@ -277,8 +288,8 @@ const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: st
     swap: { title: "IBAN ауыстырылған", hint: "Бәрі әдеттегідей, тек шот нөмірі басқа: ол жеке тұлғаға тиесілі" },
     new_to_you: { title: "Сіз үшін жаңа жеткізуші", hint: "Сіз оған әлі төлемегенсіз, ал банктің басқа клиенттері басқа шотқа төлейді" },
     young_firm: { title: "Мүлде жаңа фирма", hint: "Фирма мен шот бірнеше күн бұрын ашылған" },
-    blurry: { title: "Бұлыңғыр скан", hint: "Деректемелер анық оқылмайды, оларды қолмен енгізу керек" },
-    manual: { title: "Қолмен енгізу", hint: "Жазыңыз: «Дала Транс Логистик» ЖШС, БСН 180340021457 және жеткізуші карточкасындағы шот нөмірі" },
+    blurry: { title: "Бұлыңғыр скан", hint: `Атауы, БСН және сома қойылған, шот нөмірін өзіңіз енгізіңіз. Бір цифрдағы қате (мысалы, ${DALA_IBAN_TYPO}) бақылау сомасы арқылы ұсталады` },
+    manual: { title: "Қолмен енгізу", hint: `Жазыңыз: ${DALA_SHOWN.name}, БСН ${DALA_SHOWN.bin}, шот ${DALA_IBAN}` },
     known_new: { title: "Жаңа жеткізуші", hint: "Сіз оған әлі төлемегенсіз, бірақ банктің басқа клиенттері дәл сол шотқа төлейді" },
   },
   en: {
@@ -286,8 +297,8 @@ const SCENARIO_TEXTS: Record<Lang, Record<ScenarioKey, { title: string; hint: st
     swap: { title: "Swapped IBAN", hint: "Everything as usual except the account number: it belongs to a private person" },
     new_to_you: { title: "New to you", hint: "You have never paid this company, and other bank customers pay it to a different account" },
     young_firm: { title: "Brand-new company", hint: "The company and its account were opened a few days ago" },
-    blurry: { title: "Blurry scan", hint: "The details can't be read reliably, so you will have to type them in" },
-    manual: { title: "Type it in", hint: "Type in: Dala Trans Logistik LLP, BIN 180340021457 and the account number from the supplier card" },
+    blurry: { title: "Blurry scan", hint: `The name, BIN and amount are filled in; type the account number yourself. A one-digit mistake (for example ${DALA_IBAN_TYPO}) is caught by the checksum` },
+    manual: { title: "Type it in", hint: `Type in: ${DALA_SHOWN.name}, BIN ${DALA_SHOWN.bin}, account ${DALA_IBAN}` },
     known_new: { title: "New supplier", hint: "You have never paid this company, but other bank customers pay it to the same account" },
   },
 };

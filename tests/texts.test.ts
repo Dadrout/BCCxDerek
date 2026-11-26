@@ -44,6 +44,16 @@ describe("signalText", () => {
       });
     }
   }
+  test("no doubled quotes when the name already has «»; kk iban_reported has a noun", () => {
+    for (const lang of LANGS) {
+      for (const id of ["owner_mismatch", "name_mismatch", "supplier_unreliable", "supplier_inactive"] as SignalId[]) {
+        const t = signalText({ id, severity: "stop", params: { name: "ТОО «Дала»", registryName: "ТОО «Дала»" } }, lang);
+        expect(t).toContain("ТОО «Дала»");
+        expect(t).not.toMatch(/[«"]ТОО «/);
+      }
+    }
+    expect(signalText({ id: "iban_reported", severity: "stop", params: { count: 7 } }, "kk")).toContain("7 шағым");
+  });
   test("params substituted", () => {
     for (const lang of LANGS) {
       expect(signalText(sig("crowd_mismatch"), lang)).toContain("48");

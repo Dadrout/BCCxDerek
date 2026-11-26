@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const body = { fingerprint: b.body.fingerprint, acknowledged: b.body.acknowledged === true };
     const { outcome, parsed } = runCheck(b.fields, b.hints);
     if (outcome.kind === "fix_fields" || !parsed) return NextResponse.json({ result: "fix_fields" }, { status: 400 });
-    if (body.fingerprint !== fingerprint(DEMO_CLIENT.bin, parsed)) return NextResponse.json({ result: "needs_recheck" }, { status: 409 });
+    if (body.fingerprint !== fingerprint(DEMO_CLIENT.bin, parsed, b.hints)) return NextResponse.json({ result: "needs_recheck" }, { status: 409 });
     if (outcome.verdict === "stop") return NextResponse.json({ result: "blocked" }, { status: 403 });
     if (outcome.verdict === "check" && !body.acknowledged) return NextResponse.json({ result: "needs_ack" }, { status: 409 });
     return NextResponse.json({ result: "sent" });

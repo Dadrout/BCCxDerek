@@ -7,7 +7,7 @@ import PaymentForm from "@/components/PaymentForm";
 import VerdictPanel from "@/components/VerdictPanel";
 import ContactCard from "@/components/ContactCard";
 import { SCENARIOS, type Scenario } from "@/lib/scenarios";
-import { DEMO_CLIENT } from "@/lib/bank/fixtures";
+import { DEMO_CLIENT } from "@/lib/demo-client";
 import { actionLabel, scenarioHint, scenarioTitle } from "@/lib/signals/texts";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { DICT, LANGS, DEFAULT_LANG, type Dict, type Lang } from "@/lib/i18n";
@@ -64,6 +64,7 @@ export default function Home() {
     if (s.hints?.phoneInDocument && v.signals.some((x) => x.id === "phone_differs")) highlights.push({ needle: "Тел.: " + s.hints.phoneInDocument, color: "amber" });
   }
 
+  const payLabel = s.busy === "extract" ? t.payReading : s.busy === "check" ? t.payChecking : actionLabel("pay", lang);
   const status = s.busy === "extract" ? t.extracting : s.busy === "check" ? t.checking : null;
   const docName = s.doc?.kind === "sample" ? scenarioTitle(s.doc.scenario, lang) : s.doc?.name ?? "";
   const filled = Object.values(s.fields).some((x) => x.trim() !== "");
@@ -114,7 +115,7 @@ export default function Home() {
           <div className="lg:col-start-1 lg:row-start-1">
             <PaymentForm t={t} lang={lang} fields={s.fields} errors={fieldErrors} unsure={s.unsure}
               notice={s.scenario === "manual" ? scenarioHint("manual", lang) : null}
-              status={status} error={s.error} payLabel={actionLabel("pay", lang)} showPay={!v}
+              status={status} error={s.error} payLabel={payLabel} showPay={!v}
               locked={s.busy === "extract" || s.busy === "check"} binRef={binRef}
               onChange={s.setField} onAttach={s.attach} onPay={() => void s.runCheck()} />
           </div>
@@ -123,7 +124,7 @@ export default function Home() {
             {v && (
               <div ref={resultRef} className="scroll-mt-4">
                 <VerdictPanel key={v.fingerprint + v.verdict} t={t} lang={lang} outcome={v} pay={s.pay} busy={s.busy} advice={s.advice}
-                  ai={s.ai[lang]} aiModel={s.aiModel} onAct={s.act} onPostpone={s.postpone} onApprove={() => void s.approve()} />
+                  ai={s.ai[lang]} aiModel={s.aiModel} onAct={s.act} onPostpone={s.postpone} onApprove={() => void s.approve()} onRecheck={() => void s.runCheck()} />
               </div>
             )}
             <section aria-label={t.invoice}>

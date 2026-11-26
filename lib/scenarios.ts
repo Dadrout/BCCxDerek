@@ -1,5 +1,5 @@
 // Сценарии демо. Реквизиты берутся из фикстур банка, IBAN здесь не набираются вручную.
-import { TAU, ZHYLDAM } from "./bank/fixtures.ts";
+import { DALA_SHOWN, TAU_SHOWN as TAU, ZHYLDAM_SHOWN as ZHYLDAM } from "./demo-client.ts";
 import type { DocumentHints } from "./signals/types.ts";
 import type { PaymentFields } from "./signals/validate.ts";
 
@@ -9,6 +9,8 @@ export type Scenario = {
   id: ScenarioId;
   sample?: string;
   fields?: PaymentFields;
+  // Подставляется только в пустые поля после чтения PDF (номер счёта не подставляется никогда).
+  fallback?: Partial<Omit<PaymentFields, "iban">>;
   hints?: DocumentHints;
   onStage: boolean;
 };
@@ -30,7 +32,12 @@ export const SCENARIOS: Scenario[] = [
     hints: noHints,
     onStage: false,
   },
-  { id: "blurry", sample: "03_dala_razmytyj_skan.pdf", onStage: false },
+  {
+    id: "blurry",
+    sample: "03_dala_razmytyj_skan.pdf",
+    fallback: { name: DALA_SHOWN.name, bin: DALA_SHOWN.bin, amount: "780000" },
+    onStage: false,
+  },
   // Поля пустые: пользователь вводит реквизиты Дала Транс сам (подсказка говорит, что вписать).
   { id: "manual", fields: { name: "", bin: "", iban: "", amount: "", purpose: "" }, hints: noHints, onStage: false },
   { id: "known_new", sample: "04_novyj_postavshik.pdf", onStage: false },

@@ -6,6 +6,7 @@ import type { Action, CheckOutcome, DocumentHints } from "@/lib/signals/types";
 import type { FieldError, PaymentFields } from "@/lib/signals/validate";
 import type { Extraction } from "@/lib/types";
 import type { Scenario, ScenarioId } from "@/lib/scenarios";
+import { formatIban } from "@/lib/iban";
 import { scenarioTitle, signalText, verdictTitle } from "@/lib/signals/texts";
 import type { Dict, Lang } from "@/lib/i18n";
 
@@ -20,6 +21,9 @@ export type AiState = { state: "loading" | "done" | "offline" | "failed"; text?:
 export type ContactStep = "ask" | "approve" | null;
 
 export const EMPTY_FIELDS: PaymentFields = { name: "", bin: "", iban: "", amount: "", purpose: "" };
+
+// IBAN в форме показываем группами по 4 знака; разбор принимает и с пробелами.
+const showFields = (f: PaymentFields): PaymentFields => ({ ...f, iban: formatIban(f.iban.replace(/\s+/g, "")) });
 
 const now = () => new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const post = (body: unknown): RequestInit => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -89,15 +93,23 @@ export function usePaymentScreen(lang: Lang) {
     dropVerdict();
   }
 
-  async function extractInto(fd: FormData, g: number, name: (t: Dict, l: Lang) => string) {
+  async function extractInto(fd: FormData, g: number, name: (t: Dict, l: Lang) => string, fallback?: Scenario["fallback"]) {
     setBusy("extract");
     try {
       const r = await fetch("/api/extract", { method: "POST", body: fd });
       const j = await r.json();
       if (g !== gen.current) return;
-      if (!r.ok) { setError(j.code ?? "generic"); return; }
+      if (!r.ok) {
+        setError(j.code ?? "generic");
+        if (fallback) setFields(showFields({ ...EMPTY_FIELDS, ...fallback }));
+        return;
+      }
       const ex = j.extraction as Extraction;
-      setFields(j.fields as PaymentFields);
+      const got = j.fields as PaymentFields;
+      const filled = { ...got };
+      // Запасные значения сценария — только в пустые поля; номер счёта остаётся как прочитан (пустой).
+      for (const k of ["name", "bin", "amount"] as const) if (!filled[k].trim() && fallback?.[k]) filled[k] = fallback[k]!;
+      setFields(showFields(filled));
       setHints(j.hints as DocumentHints);
       setExtraction(ex);
       setUnsure(unsureFields(ex));
@@ -120,9 +132,9 @@ export function usePaymentScreen(lang: Lang) {
       setDoc({ kind: "sample", scenario: s.id });
       const fd = new FormData();
       fd.append("sample", s.sample);
-      void extractInto(fd, g, (_, l) => scenarioTitle(s.id, l));
+      void extractInto(fd, g, (_, l) => scenarioTitle(s.id, l), s.fallback);
     } else if (s.fields) {
-      setFields(s.fields);
+      setFields(showFields(s.fields));
       setHints(s.hints);
     }
   }

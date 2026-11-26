@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
@@ -52,11 +52,14 @@ describe("approvals in the engine", () => {
     expect(ids(r)).toEqual(expect.arrayContaining(["own_history_changed", "crowd_mismatch"]));
   });
 
-  test("approval for exact client+BIN+IBAN turns own_history_changed and crowd_mismatch into change_approved", () => {
+  test("approval for exact client+BIN+IBAN demotes own_history_changed and crowd_mismatch to info and adds change_approved", () => {
     const r = evaluate(swap, bank, { ...opts, approvals: [approval] });
     expect(ids(r)).toContain("change_approved");
-    expect(ids(r)).not.toContain("own_history_changed");
-    expect(ids(r)).not.toContain("crowd_mismatch");
+    const sev = (id: string) => r.signals.find((s) => s.id === id)?.severity;
+    expect(sev("own_history_changed")).toBe("info");
+    expect(sev("crowd_mismatch")).toBe("info");
+    expect(ids(r)).not.toContain("first_payment");
+    expect(r.verdict).toBe("ok");
     expect(ids(r)).not.toContain("nothing_to_compare");
     expect(r.signals.find((s) => s.id === "change_approved")?.params).toEqual({ date: "11.12", by: "Сидоров А." });
   });
@@ -119,6 +122,30 @@ describe("approvals file store", () => {
     expect(readApprovals(f)).toHaveLength(2);
     expect(readApprovals(f)[0]).toEqual(approval);
     resetApprovals(f);
+    expect(readApprovals(f)).toEqual([]);
+  });
+
+  test("elements of the wrong shape are filtered out", () => {
+    const f = tmp("shape.json");
+    writeFileSync(f, JSON.stringify([null, {}, { ...approval, approvedBy: 5 }, approval]));
+    expect(readApprovals(f)).toEqual([approval]);
+    writeFileSync(f, JSON.stringify([null, {}]));
+    expect(readApprovals(f)).toEqual([]);
+  });
+
+  test("on stage approvals stay in memory and never touch the file", () => {
+    const f = tmp("stage.json");
+    process.env.DEREK_STAGE = "1";
+    try {
+      resetApprovals(f);
+      addApproval(approval, f);
+      expect(readApprovals(f)).toEqual([approval]);
+      expect(existsSync(f)).toBe(false);
+      resetApprovals(f);
+      expect(readApprovals(f)).toEqual([]);
+    } finally {
+      delete process.env.DEREK_STAGE;
+    }
     expect(readApprovals(f)).toEqual([]);
   });
 

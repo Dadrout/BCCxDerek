@@ -62,8 +62,9 @@ function chooseAction(main: Signal, verdict: Verdict, hasContract: boolean): Act
   }
 }
 
-export function fingerprint(clientBin: string, p: ParsedPayment): string {
-  return createHash("sha256").update([clientBin, p.name, p.bin, p.iban, p.amount].join("|")).digest("hex");
+export function fingerprint(clientBin: string, p: ParsedPayment, hints?: DocumentHints): string {
+  const parts = [clientBin, p.name, p.bin, p.iban, p.amount, hints?.changeRequestText ?? "", hints?.phoneInDocument ?? ""];
+  return createHash("sha256").update(parts.join("|")).digest("hex");
 }
 
 export function evaluate(
@@ -73,6 +74,7 @@ export function evaluate(
 ): Extract<CheckOutcome, { kind: "verdict" }> {
   const found = new Map<SignalId, Signal["params"]>();
   const add = (id: SignalId, params: Signal["params"] = {}) => found.set(id, params);
+  const demoted = new Set<SignalId>();
 
   // Владелец счёта: проверяем только счета BCC. Счёта BCC нет в базе — значит, такого счёта не существует.
   const account = bank.accounts.get(p.iban);
@@ -110,12 +112,14 @@ export function evaluate(
   const start = historyStart();
   const history = (bank.paymentsBySupplier.get(p.bin) ?? []).filter((x) => x.date > start);
   const own = history.filter((x) => x.clientBin === opts.clientBin);
-  // Утверждённая смена реквизитов: ровно этот клиент + БИН + IBAN. Снимает только сигналы по истории платежей.
+  // Утверждённая смена реквизитов: ровно этот клиент + БИН + IBAN. Понижает сигналы по истории платежей до info.
   const approval = opts.approvals?.find((a) => a.clientBin === opts.clientBin && a.bin === p.bin && a.iban === p.iban);
   const ownHere = own.filter((x) => x.iban === p.iban).length;
   if (ownHere > 0) add("own_history_ok", { count: ownHere });
-  else if (own.length > 0 && !approval) add("own_history_changed", { count: own.length });
-  else add("first_payment");
+  else if (own.length > 0) {
+    add("own_history_changed", { count: own.length });
+    if (approval) demoted.add("own_history_changed");
+  } else add("first_payment");
 
   if (own.length > 0) {
     const average = own.reduce((sum, x) => sum + x.amount, 0) / own.length;
@@ -127,7 +131,10 @@ export function evaluate(
   const crowdHere = distinctClients(others.filter((x) => x.iban === p.iban));
   const crowdElsewhere = distinctClients(others.filter((x) => x.iban !== p.iban));
   if (crowdHere > 0) add("crowd_confirms", { count: crowdHere });
-  else if (crowdElsewhere >= CROWD_MISMATCH_MIN && !approval) add("crowd_mismatch", { count: crowdElsewhere });
+  else if (crowdElsewhere >= CROWD_MISMATCH_MIN) {
+    add("crowd_mismatch", { count: crowdElsewhere });
+    if (approval) demoted.add("crowd_mismatch");
+  }
 
   if (approval) {
     // approvedAt хранится как YYYY-MM-DD; в сигнале — ДД.ММ.
@@ -148,7 +155,7 @@ export function evaluate(
 
   const signals: Signal[] = SIGNAL_ORDER.filter((id) => found.has(id)).map((id) => ({
     id,
-    severity: SEVERITY[id],
+    severity: demoted.has(id) ? "info" : SEVERITY[id],
     params: found.get(id)!,
   }));
   // Вердикт по самому серьёзному уровню; главная причина объясняет именно его (info вердиктом не бывает).
@@ -167,6 +174,6 @@ export function evaluate(
     action: chooseAction(main, verdict, contract !== undefined),
     signals,
     contact,
-    fingerprint: fingerprint(opts.clientBin, p),
+    fingerprint: fingerprint(opts.clientBin, p, opts.hints),
   };
 }

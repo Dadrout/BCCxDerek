@@ -1,12 +1,13 @@
 // Фикстуры синтетического банка: на них опираются демо-сценарии и тесты. Все данные вымышленные.
 import { makeKzIban } from "../iban.ts";
 
-export const DEMO_CLIENT = { bin: "150540009981", name: "ТОО «Шаңырақ Бизнес Групп»" };
+import { DALA_SHOWN, TAU_SHOWN, ZHYLDAM_SHOWN } from "../demo-client.ts";
+
+export { DEMO_CLIENT } from "../demo-client.ts";
+import { DEMO_CLIENT } from "../demo-client.ts";
 
 export const DALA = {
-  bin: "180340021457",
-  name: "ТОО «Дала Транс Логистик»",
-  iban: makeKzIban("856", "0000012345678"),
+  ...DALA_SHOWN,
   registeredAt: "2018-03-14",
   openedAt: "2018-04-02",
   otherClients: 47,
@@ -26,19 +27,14 @@ export const FRAUD_IBAN = makeKzIban("856", "0000098765432");
 export const FRAUD_OWNER = { name: "Касымов Р.Т.", id: "920115300123", openedAt: "2026-12-08" };
 
 export const TAU = {
-  bin: "170640011223",
-  name: "ТОО «Тау Строй Материалы»",
-  iban: makeKzIban("856", "0000055501234"),
-  invoiceIban: makeKzIban("601", "0000044409876"),
+  ...TAU_SHOWN,
   registeredAt: "2017-06-20",
   openedAt: "2017-07-05",
   otherClients: 48,
 };
 
 export const ZHYLDAM = {
-  bin: "261127000451",
-  name: "ТОО «Жылдам Импорт»",
-  iban: makeKzIban("856", "0000066607788"),
+  ...ZHYLDAM_SHOWN,
   registeredAt: "2026-11-27",
   openedAt: "2026-12-08",
 };

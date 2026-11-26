@@ -26,9 +26,10 @@ type Props = {
   onAct: (a: Action) => void;
   onPostpone: () => void;
   onApprove: () => void;
+  onRecheck: () => void;
 };
 
-export default function VerdictPanel({ t, lang, outcome: v, pay, busy, advice, ai, aiModel, onAct, onPostpone, onApprove }: Props) {
+export default function VerdictPanel({ t, lang, outcome: v, pay, busy, advice, ai, aiModel, onAct, onPostpone, onApprove, onRecheck }: Props) {
   const [open, setOpen] = useState(false);
   const st = BAND[v.verdict];
   const others = v.signals.filter((s) => s.id !== v.main.id);
@@ -66,6 +67,9 @@ export default function VerdictPanel({ t, lang, outcome: v, pay, busy, advice, a
           <Note tone={pay === "sent" ? "bg-go-wash text-go" : pay === "blocked" ? "bg-stop-wash text-stop" : pay === "requested" ? "bg-new-wash text-new" : "bg-cell text-ink"} dot>
             {pay === "sent" ? t.paySent : pay === "blocked" ? t.payBlocked : pay === "requested" ? t.payRequested : t.payPostponed}
           </Note>
+        )}
+        {pay === "postponed" && (
+          <button onClick={onRecheck} disabled={disabled} className="btn btn-secondary">{t.recheck}</button>
         )}
         {pay === "requested" && (
           <button onClick={onApprove} disabled={disabled} className="btn btn-primary">{t.approveSecond}</button>

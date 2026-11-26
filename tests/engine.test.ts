@@ -350,5 +350,9 @@ describe("rules", () => {
     expect(fingerprint(CLIENT, { ...dala, iban: DALA_IBAN2 })).not.toBe(fp);
     expect(fingerprint(CLIENT, { ...dala, amount: 800001 })).not.toBe(fp);
     expect(evaluate(dala, bank, opts).fingerprint).toBe(fp);
+    const h = { changeRequestText: "Просим оплатить на новый счёт", phoneInDocument: "+7 700 000 00 00" };
+    expect(fingerprint(CLIENT, dala, h)).not.toBe(fp);
+    expect(fingerprint(CLIENT, dala, { ...h, phoneInDocument: null })).not.toBe(fingerprint(CLIENT, dala, h));
+    expect(evaluate(dala, bank, { ...opts, hints: h }).fingerprint).toBe(fingerprint(CLIENT, dala, h));
   });
 });

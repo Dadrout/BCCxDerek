@@ -68,6 +68,16 @@ describe("api", () => {
     expect(await r2.json()).toEqual({ result: "sent" });
   });
 
+  test("pay: hints dropped after the check → 409 needs_recheck", async () => {
+    const hints = { changeRequestText: "Просим оплатить на новый счёт", phoneInDocument: null };
+    const c = await (await checkPOST(json("check", { fields: zhyldamFields, hints }))).json();
+    const r = await pay({ fields: zhyldamFields, fingerprint: c.fingerprint, acknowledged: true });
+    expect(r.status).toBe(409);
+    expect(await r.json()).toEqual({ result: "needs_recheck" });
+    const ok = await pay({ fields: zhyldamFields, hints, fingerprint: c.fingerprint, acknowledged: true });
+    expect(ok.status).toBe(200);
+  });
+
   test("pay: ok verdict → 200 sent", async () => {
     const c = await check(dalaFields);
     expect(c.verdict).toBe("ok");

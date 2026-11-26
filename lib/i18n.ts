@@ -45,6 +45,9 @@ export type Dict = {
   payNote: string;
   extracting: string;
   checking: string;
+  payReading: string;
+  payChecking: string;
+  recheck: string;
   unsure: string;
   fixFields: string;
   // вердикт
@@ -140,6 +143,9 @@ const ru: Dict = {
   payNote: "Перед отправкой банк проверит получателя по своим данным.",
   extracting: "Читаю счёт и заполняю поля…",
   checking: "Банк проверяет получателя…",
+  payReading: "Читаю счёт…",
+  payChecking: "Проверяю…",
+  recheck: "Проверить снова",
   unsure: "Прочитано неуверенно, сверьте с оригиналом",
   fixFields: "Платёж не проверен: исправьте поля, отмеченные красным.",
   result: "Результат проверки",
@@ -148,8 +154,8 @@ const ru: Dict = {
   postpone: "Отложить платёж",
   approveSecond: "Утвердить как второй сотрудник",
   paySent: "Отправлено на подпись. Это демо, деньги не уходят.",
-  payPostponed: "Платёж отложен. Черновик сохранён, отправить его можно только после новой проверки.",
-  payBlocked: "Платёж отменён. Счёт отмечен как подозрительный, обращение в банк подготовлено.",
+  payPostponed: "Платёж отложен. Чтобы оплатить, проверьте его заново.",
+  payBlocked: "Платёж заблокирован. Сообщите в банк о попытке мошенничества.",
   payRequested: "Заявка на новый счёт создана. Её должен утвердить второй сотрудник.",
   checkBinAdvice: "Сверьте БИН с договором или прежними счетами: это может быть просто опечатка.",
   checkSupplierAdvice: "Проверьте фирму в официальном госреестре до оплаты.",
@@ -234,6 +240,9 @@ const kk: Dict = {
   payNote: "Жіберер алдында банк алушыны өз деректері бойынша тексереді.",
   extracting: "Шотты оқып, өрістерді толтырып жатырмын…",
   checking: "Банк алушыны тексеріп жатыр…",
+  payReading: "Шотты оқып жатырмын…",
+  payChecking: "Тексеріп жатырмын…",
+  recheck: "Қайта тексеру",
   unsure: "Анық оқылмады, түпнұсқамен салыстырыңыз",
   fixFields: "Төлем тексерілмеді: қызылмен белгіленген өрістерді түзетіңіз.",
   result: "Тексеру нәтижесі",
@@ -242,8 +251,8 @@ const kk: Dict = {
   postpone: "Төлемді кейінге қалдыру",
   approveSecond: "Екінші қызметкер ретінде бекіту",
   paySent: "Қол қоюға жіберілді. Бұл демо, ақша жіберілмейді.",
-  payPostponed: "Төлем кейінге қалдырылды. Жоба сақталды, оны тек жаңа тексеруден кейін жіберуге болады.",
-  payBlocked: "Төлем тоқтатылды. Шот күдікті деп белгіленді, банкке өтініш дайындалды.",
+  payPostponed: "Төлем кейінге қалдырылды. Төлеу үшін оны қайта тексеріңіз.",
+  payBlocked: "Төлем бұғатталды. Банкке алаяқтық әрекеті туралы хабарлаңыз.",
   payRequested: "Жаңа шотқа өтінім жасалды. Оны екінші қызметкер бекітуі керек.",
   checkBinAdvice: "БСН-ды шартпен немесе бұрынғы шоттармен салыстырыңыз: бұл жай қате болуы мүмкін.",
   checkSupplierAdvice: "Төлемнен бұрын фирманы ресми мемлекеттік тізілімнен тексеріңіз.",
@@ -331,6 +340,9 @@ const en: Dict = {
   payNote: "Before sending, the bank checks the recipient against its own data.",
   extracting: "Reading the invoice and filling in the fields…",
   checking: "The bank is checking the recipient…",
+  payReading: "Reading the invoice…",
+  payChecking: "Checking…",
+  recheck: "Check again",
   unsure: "Read with low confidence, compare with the original",
   fixFields: "Payment not checked: fix the fields marked in red.",
   result: "Check result",
@@ -339,8 +351,8 @@ const en: Dict = {
   postpone: "Hold payment",
   approveSecond: "Approve as second employee",
   paySent: "Sent for signing. This is a demo, no money moves.",
-  payPostponed: "Payment on hold. The draft is saved and can be sent only after a new check.",
-  payBlocked: "Payment cancelled. The invoice is flagged as suspicious and a report to the bank is ready.",
+  payPostponed: "Payment on hold. To pay, check it again.",
+  payBlocked: "Payment blocked. Report the fraud attempt to the bank.",
   payRequested: "A request for the new account was created. A second employee has to approve it.",
   checkBinAdvice: "Compare the BIN with the contract or earlier invoices: it may just be a typo.",
   checkSupplierAdvice: "Check the company in the official state registry before paying.",

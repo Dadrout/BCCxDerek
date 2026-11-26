@@ -95,6 +95,22 @@ describe("scenarios", () => {
     expect(o.errors.some((e: { field: string; code: string }) => e.field === "iban" && e.code === "empty")).toBe(true);
   });
 
+  test("manual and blurry hints carry Dala details; blurry shows the typo example that fails the checksum", async () => {
+    const { formatIban } = await import("@/lib/iban");
+    const { parsePayment } = await import("@/lib/signals/validate");
+    for (const l of ["kk", "ru", "en"] as const) {
+      const h = scenarioHint("manual", l);
+      expect(h).toContain(DALA.bin);
+      expect(h).toContain(DALA.name);
+      expect(h).toContain(formatIban(DALA.iban));
+      expect(scenarioHint("blurry", l)).toContain("KZ21 8560 0000 1234 5679");
+    }
+    const r = parsePayment({ name: DALA.name, bin: DALA.bin, iban: "KZ21 8560 0000 1234 5679", amount: "1000", purpose: "" });
+    expect(r.ok).toBe(false);
+    expect(sc("blurry").fallback).toEqual({ name: DALA.name, bin: DALA.bin, amount: "780000" });
+    expect(sc("blurry").fallback).not.toHaveProperty("iban");
+  });
+
   test("manual → empty fields", () => {
     expect(Object.values(sc("manual").fields!).every((v) => v === "")).toBe(true);
   });
