@@ -43,6 +43,17 @@ describe("compareLocal", () => {
   it("без подходящего пункта договора ничего не находит", () => {
     expect(compareLocal(DOCS, [TERMS[0]])).toEqual([]);
   });
+  it("реальная приписка про смену счёта — details_change по 4.2", () => {
+    const r = compareLocal(
+      [{ source: "invoice", text: "Внимание: в связи со сменой расчётного счёта просим оплачивать по новым реквизитам." }],
+      TERMS,
+    );
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ kind: "details_change", clause: "4.2" });
+  });
+  it("нейтральная фраза про срок оплаты — пусто", () => {
+    expect(compareLocal([{ source: "invoice", text: "Оплата по договору № 14/2025. Срок оплаты: 5 банковских дней." }], TERMS)).toEqual([]);
+  });
   it("CONFLICT_KINDS", () => {
     expect(CONFLICT_KINDS).toEqual(["details_change", "third_party"]);
   });
@@ -99,6 +110,19 @@ describe("compareWithContract", () => {
     expect(r.mode).toBe("ai");
     expect(r.conflicts).toHaveLength(1);
     expect(r.conflicts[0].kind).toBe("third_party");
+  });
+  it("ИИ вернул пустой список — режим ai, без находок", async () => {
+    vi.stubEnv("GROQ_API_KEY", "test-key");
+    vi.stubGlobal("fetch", vi.fn(async () => groqReply([])));
+    expect(await compareWithContract(DOCS, TERMS)).toEqual({ conflicts: [], mode: "ai" });
+  });
+  it("цитата ИИ с «е» вместо «ё» принимается", async () => {
+    vi.stubEnv("GROQ_API_KEY", "test-key");
+    const q = { kind: "third_party", source: "email", docQuote: "направить нашему партнеру", clause: "4.3", contractQuote: TERMS[2].text };
+    vi.stubGlobal("fetch", vi.fn(async () => groqReply([q])));
+    const r = await compareWithContract(DOCS, TERMS);
+    expect(r.mode).toBe("ai");
+    expect(r.conflicts).toHaveLength(1);
   });
   it("ошибка сети — локально", async () => {
     vi.stubEnv("GROQ_API_KEY", "test-key");

@@ -30,7 +30,8 @@ const CLAUSE_PATTERNS: Record<ConflictKind, RegExp> = {
   third_party: /третьим лицам|напрямую/i,
 };
 
-const collapse = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+// «ё» приводится к «е» с обеих сторон сравнения.
+const collapse = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase().replace(/ё/g, "е");
 const isSource = (v: unknown): v is "invoice" | "email" => v === "invoice" || v === "email";
 
 // Предложения документа: границы — . ! ? и перевод строки; каждое обрезано до 300 символов.
@@ -42,6 +43,11 @@ function sentences(text: string): string[] {
 }
 
 export function compareLocal(docs: ContractDoc[], terms: Terms): ContractConflict[] {
+  // Результат тоже проходит verifyConflicts: пределы 8–300 символов действуют и для локальных цитат.
+  return verifyConflicts(docs, terms, rawLocal(docs, terms));
+}
+
+function rawLocal(docs: ContractDoc[], terms: Terms): ContractConflict[] {
   const out: ContractConflict[] = [];
   for (const kind of CONFLICT_KINDS) {
     const clause = terms.find((t) => CLAUSE_PATTERNS[kind].test(t.text));
