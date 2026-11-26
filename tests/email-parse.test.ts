@@ -61,3 +61,9 @@ test("looksLikeEml", () => {
   expect(looksLikeEml(Buffer.from(full))).toBe(true);
   expect(looksLikeEml(Buffer.from("%PDF-1.4\nFrom: x\n"))).toBe(false);
 });
+
+test("From без имени", async () => {
+  const m = await parseEml(Buffer.from("From: buh@DalaTrans.kz\r\nSubject: x\r\n\r\nhi\r\n"));
+  expect(m.fromAddress).toBe("buh@dalatrans.kz");
+  expect(m.fromName).toBe("");
+});

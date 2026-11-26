@@ -25,3 +25,19 @@ test("domainOf и sameOrg", () => {
   expect(sameOrg("mail.dalatrans.kz", "dalatrans.kz")).toBe(true);
   expect(sameOrg("evildalatrans.kz", "dalatrans.kz")).toBe(false);
 });
+
+test("границы порогов isLookalike", () => {
+  expect(isLookalike("ab.kz", "ac.kz")).toBe(false);
+  expect(isLookalike("abc.kz", "abcdef.kz")).toBe(false);
+  expect(isLookalike("dala.kz", "dala-pay.kz")).toBe(true);
+  expect(isLookalike("dalatrans.kz", "dalatrbms.kz")).toBe(true);
+  expect(isLookalike("dalatrans.kz", "dalatrams.kz")).toBe(true);
+  expect(isLookalike("kaspi.kz", "dalatrans.kz")).toBe(false);
+});
+
+test("завершающая точка в домене", () => {
+  expect(sameOrg("dalatrans.kz.", "dalatrans.kz")).toBe(true);
+  expect(sameOrg("mail.dalatrans.kz.", "dalatrans.kz.")).toBe(true);
+  expect(isLookalike("dalatrans.kz.", "dalatrans.kz")).toBe(false);
+  expect(isLookalike("dalatrans-kz.com.", "dalatrans.kz")).toBe(true);
+});

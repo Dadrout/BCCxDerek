@@ -26,10 +26,15 @@ export function isFreeMail(domain: string): boolean {
 
 /** Тот же домен или его поддомен. */
 export function sameOrg(domain: string, reference: string): boolean {
-  const d = domain.trim().toLowerCase();
-  const r = reference.trim().toLowerCase();
+  const d = norm(domain);
+  const r = norm(reference);
   if (!d || !r) return false;
   return d === r || d.endsWith("." + r);
+}
+
+// Нижний регистр, без пробелов и без завершающей точки (FQDN «example.kz.»).
+function norm(domain: string): string {
+  return domain.trim().toLowerCase().replace(/\.+$/, "");
 }
 
 const DIGIT_SWAPS: Record<string, string> = { "0": "o", "1": "l", "3": "e", "5": "s" };
@@ -37,7 +42,7 @@ const DIGIT_SWAPS: Record<string, string> = { "0": "o", "1": "l", "3": "e", "5":
 // Ядро домена: без зоны (последней метки), без ведущих www./mail., без - _ .
 // и с подменой цифр на похожие буквы.
 function core(domain: string): string {
-  const labels = domain.trim().toLowerCase().split(".").filter(Boolean);
+  const labels = norm(domain).split(".").filter(Boolean);
   if (labels.length > 1) labels.pop();
   if (labels.length > 1 && (labels[0] === "www" || labels[0] === "mail")) labels.shift();
   return labels
