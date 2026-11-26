@@ -225,6 +225,13 @@ describe("one test per signal", () => {
     expect(find(evaluate({ ...dala, iban: DALA_IBAN2 }, bank, { clientBin: CLIENT, approvals }), "change_approved")?.params).toEqual({ date: "26.11", by: "Сапарова А.К." });
   });
 
+  test("approved change with no ok signal: verdict ok, main reason is the approval", () => {
+    const approvals = [{ clientBin: CLIENT, bin: NEW_BIN, iban: KASPI_IBAN, approvedAt: "2026-12-11", approvedBy: "Сапарова А.К." }];
+    const r = evaluate(newSupplierOtherBank, bank, { clientBin: CLIENT, approvals });
+    expect(r.verdict).toBe("ok");
+    expect(r.main?.id).toBe("change_approved");
+  });
+
   test("first_payment: client never paid this BIN; not when it has", () => {
     expect(ids(evaluate(newSupplierOtherBank, bank, opts))).toContain("first_payment");
     expect(ids(evaluate(dala, bank, opts))).not.toContain("first_payment");

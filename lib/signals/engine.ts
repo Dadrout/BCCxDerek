@@ -154,7 +154,8 @@ export function evaluate(
   // Вердикт по самому серьёзному уровню; главная причина объясняет именно его (info вердиктом не бывает).
   const has = (level: Severity) => signals.some((s) => s.severity === level);
   const verdict: Verdict = has("stop") ? "stop" : has("check") ? "check" : "ok";
-  const main = signals.find((s) => s.severity === verdict)!;
+  // Зелёный без ok-сигнала бывает только при утверждённой смене реквизитов: тогда главная причина — само утверждение.
+  const main = signals.find((s) => s.severity === verdict) ?? signals.find((s) => s.id === "change_approved") ?? signals[0];
   const contact: Contact | null = contract
     ? { person: contract.person, role: contract.role, phone: contract.phone, source: contract.source }
     : null;
