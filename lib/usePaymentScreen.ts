@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Action, CheckOutcome, DocumentHints } from "@/lib/signals/types";
 import type { FieldError, PaymentFields } from "@/lib/signals/validate";
 import type { Extraction } from "@/lib/types";
+import type { EmailView } from "@/lib/email/types";
 import type { Scenario, ScenarioId } from "@/lib/scenarios";
 import { formatIban } from "@/lib/iban";
 import { scenarioTitle, signalText, verdictTitle } from "@/lib/signals/texts";
@@ -41,10 +42,13 @@ function unsureFields(ex: Extraction): FieldKey[] {
   return map.filter(([, f]) => f.value && (f.confidence !== "high" || f.value.includes("?"))).map(([k]) => k);
 }
 
+const isEmailName = (n: string) => /\.eml$/i.test(n);
+
 export function usePaymentScreen(lang: Lang) {
   const [fields, setFields] = useState<PaymentFields>(EMPTY_FIELDS);
   const [hints, setHints] = useState<DocumentHints | undefined>(undefined);
   const [extraction, setExtraction] = useState<Extraction | null>(null);
+  const [email, setEmail] = useState<EmailView | null>(null);
   const [unsure, setUnsure] = useState<FieldKey[]>([]);
   const [scenario, setScenario] = useState<ScenarioId | null>(null);
   const [doc, setDoc] = useState<Doc>(null);
@@ -84,6 +88,7 @@ export function usePaymentScreen(lang: Lang) {
     setFields(EMPTY_FIELDS);
     setHints(undefined);
     setExtraction(null);
+    setEmail(null);
     setUnsure([]);
     setScenario(null);
     setDoc(null);
@@ -104,16 +109,35 @@ export function usePaymentScreen(lang: Lang) {
         if (fallback) setFields(showFields({ ...EMPTY_FIELDS, ...fallback }));
         return;
       }
-      const ex = j.extraction as Extraction;
+      // У письма без PDF-вложения extraction нет: поля приходят пустыми.
+      const ex = (j.extraction ?? null) as Extraction | null;
       const got = j.fields as PaymentFields;
       const filled = { ...got };
       // Запасные значения сценария — только в пустые поля; номер счёта остаётся как прочитан (пустой).
       for (const k of ["name", "bin", "amount"] as const) if (!filled[k].trim() && fallback?.[k]) filled[k] = fallback[k]!;
       setFields(showFields(filled));
       setHints(j.hints as DocumentHints);
+      if (j.email) {
+        setEmail(j.email as EmailView);
+        // Счёт из письма показываем из base64 через blob-адрес; прежний адрес освобождаем.
+        if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+        objectUrl.current = null;
+        if (typeof j.pdfBase64 === "string") {
+          const bytes = Uint8Array.from(atob(j.pdfBase64), (c) => c.charCodeAt(0));
+          const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+          objectUrl.current = url;
+          setSrc(url);
+          if (typeof j.pdfName === "string" && j.pdfName) setDoc({ kind: "upload", name: j.pdfName });
+        } else {
+          setSrc(null);
+        }
+        addLog((t, l) => t.logEmail(name(t, l)));
+      }
       setExtraction(ex);
-      setUnsure(unsureFields(ex));
-      addLog((t, l) => t.logExtracted(name(t, l), modeText(ex, t)));
+      setUnsure(ex ? unsureFields(ex) : []);
+      if (ex) addLog((t, l) => t.logExtracted(name(t, l), modeText(ex, t)));
+      // Ответ 200 с кодом (письмо без счёта) — не сбой, а подсказка в форме.
+      if (typeof j.code === "string") setError(j.code);
     } catch {
       if (g === gen.current) setError("generic");
     } finally {
@@ -128,7 +152,8 @@ export function usePaymentScreen(lang: Lang) {
     setScenario(s.id);
     addLog((t, l) => t.logScenario(scenarioTitle(s.id, l)));
     if (s.sample) {
-      setSrc(`/samples/${s.sample}`);
+      // Пример-письмо (.eml) не показываем как PDF: счёт придёт вложением в ответе сервера.
+      if (!isEmailName(s.sample)) setSrc(`/samples/${s.sample}`);
       setDoc({ kind: "sample", scenario: s.id });
       const fd = new FormData();
       fd.append("sample", s.sample);
@@ -143,12 +168,19 @@ export function usePaymentScreen(lang: Lang) {
     gen.current++;
     const g = gen.current;
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
-    const url = URL.createObjectURL(file);
-    objectUrl.current = url;
-    setSrc(url);
+    objectUrl.current = null;
+    // PDF показываем сразу; у письма счёт (если он есть) придёт вложением в ответе сервера.
+    if (isEmailName(file.name) || file.type === "message/rfc822") {
+      setSrc(null);
+    } else {
+      const url = URL.createObjectURL(file);
+      objectUrl.current = url;
+      setSrc(url);
+    }
     setDoc({ kind: "upload", name: file.name });
     setScenario(null);
     setExtraction(null);
+    setEmail(null);
     setUnsure([]);
     dropVerdict();
     const fd = new FormData();
@@ -301,7 +333,7 @@ export function usePaymentScreen(lang: Lang) {
   }, [outcome, lang]);
 
   return {
-    fields, hints, extraction, unsure, scenario, doc, src, busy, outcome, pay, advice, contact, log, ai, aiModel, error,
+    fields, hints, extraction, email, unsure, scenario, doc, src, busy, outcome, pay, advice, contact, log, ai, aiModel, error,
     pickScenario, attach, setField, runCheck, act, postpone, confirmChange, notChanged, approve, resetDemo,
     closeContact: () => setContact(null),
   };

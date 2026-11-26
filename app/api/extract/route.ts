@@ -73,6 +73,8 @@ async function handleEmail(buf: Buffer) {
     extraction,
     email,
     pdfBase64: parsed.pdf.content.toString("base64"),
+    // Имя вложения — для заголовка над счётом на экране.
+    pdfName: parsed.pdf.filename,
   });
 }
 

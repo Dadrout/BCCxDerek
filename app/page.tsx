@@ -6,6 +6,7 @@ import type { Highlight } from "@/components/PdfView";
 import PaymentForm from "@/components/PaymentForm";
 import VerdictPanel from "@/components/VerdictPanel";
 import ContactCard from "@/components/ContactCard";
+import EmailPanel from "@/components/EmailPanel";
 import { SCENARIOS, type Scenario } from "@/lib/scenarios";
 import { DEMO_CLIENT } from "@/lib/demo-client";
 import { actionLabel, scenarioHint, scenarioTitle } from "@/lib/signals/texts";
@@ -129,6 +130,7 @@ export default function Home() {
                   ai={s.ai[lang]} aiModel={s.aiModel} onAct={s.act} onPostpone={s.postpone} onApprove={() => void s.approve()} onRecheck={() => void s.runCheck()} />
               </div>
             )}
+            {s.email && <EmailPanel t={t} lang={lang} email={s.email} signals={v ? v.signals.map((x) => x.id) : null} />}
             <section aria-label={t.invoice}>
               {s.src ? (
                 <>
@@ -177,12 +179,12 @@ export default function Home() {
   );
 }
 
-// Ряд сценариев: три сценария для сцены крупно и по порядку, остальные — запас для вопросов жюри.
+// Ряд сценариев: четыре сценария для сцены крупно и по порядку, остальные — запас для вопросов жюри.
 function ScenarioRow({ t, lang, active, disabled, onPick }: { t: Dict; lang: Lang; active: string | null; disabled: boolean; onPick: (s: Scenario) => void }) {
   return (
     <section aria-label={t.scenarios} className="mt-5">
       <h2 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3">{t.scenarios} · {t.stageTitle}</h2>
-      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {STAGE.map((sc, i) => {
           const on = active === sc.id;
           return (

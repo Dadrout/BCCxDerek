@@ -42,6 +42,8 @@ export type Dict = {
   purposePh: string;
   attachPdf: string;
   attachHint: string;
+  attachEmail: string;
+  attachEmailHint: string;
   payNote: string;
   extracting: string;
   checking: string;
@@ -72,6 +74,27 @@ export type Dict = {
   noPdf: string;
   legendIban: string;
   legendWarn: string;
+  // письмо
+  emailTitle: string;
+  emailFrom: string;
+  emailReplyTo: string;
+  emailAuth: string;
+  emailSubject: string;
+  emailDate: string;
+  emailBody: string;
+  emailNoSubject: string;
+  authWord: Record<"pass" | "fail" | "none", string>;
+  authOk: string;
+  authBad: string;
+  authUnknown: string;
+  tagLookalike: string;
+  tagDomainDiffers: string;
+  tagFreeMail: string;
+  tagReplyTo: string;
+  pressureAi: string;
+  pressureLocal: string;
+  pressureNone: string;
+  pressureKinds: Record<string, string>;
   // ИИ
   aiTitle: string;
   aiModel: (m: string) => string;
@@ -96,6 +119,7 @@ export type Dict = {
   logCheckBin: string;
   logCheckSupplier: string;
   logBlockedServer: string;
+  logEmail: (name: string) => string;
   // карточка контакта
   contactSource: (src: string) => string;
   contactNoPhone: string;
@@ -140,6 +164,8 @@ const ru: Dict = {
   purposePh: "Оплата по счёту № …",
   attachPdf: "Приложить счёт PDF",
   attachHint: "Поля заполнятся из счёта сами. Проверяются всё равно поля платежа.",
+  attachEmail: "Приложить письмо",
+  attachEmailHint: "Если счёт пришёл письмом, приложите само письмо (.eml): проверим и отправителя.",
   payNote: "Перед отправкой банк проверит получателя по своим данным.",
   extracting: "Читаю счёт и заполняю поля…",
   checking: "Банк проверяет получателя…",
@@ -168,6 +194,26 @@ const ru: Dict = {
   noPdf: "Платёж заполнен без PDF. Банк проверяет поля платежа, файл для этого не нужен.",
   legendIban: "Номер счёта",
   legendWarn: "Просьба сменить реквизиты, телефон",
+  emailTitle: "Письмо, в котором пришёл счёт",
+  emailFrom: "От кого",
+  emailReplyTo: "Ответ уйдёт",
+  emailAuth: "Подлинность",
+  emailSubject: "Тема",
+  emailDate: "Дата",
+  emailBody: "Текст письма",
+  emailNoSubject: "(без темы)",
+  authWord: { pass: "пройдена", fail: "не пройдена", none: "нет данных" },
+  authOk: "Почтовый сервер подтвердил: письмо отправлено с этого адреса",
+  authBad: "Почтовый сервер не подтвердил, что письмо отправил владелец адреса",
+  authUnknown: "Почтовый сервер не сообщил, подлинное ли письмо",
+  tagLookalike: "адрес-двойник",
+  tagDomainDiffers: "не адрес из договора",
+  tagFreeMail: "бесплатная почта",
+  tagReplyTo: "другой адрес",
+  pressureAi: "Давление найдено ИИ",
+  pressureLocal: "Давление найдено по ключевым фразам",
+  pressureNone: "Слов, которые торопят или давят, не найдено",
+  pressureKinds: { urgency: "Торопят", no_call: "Просят не звонить", new_details: "Новые реквизиты", secrecy: "Просят молчать", authority: "Ссылаются на начальство" },
   aiTitle: "Объяснение ИИ",
   aiModel: (m) => `Модель ${m}. Решение принимает проверка, ИИ его объясняет.`,
   aiThinking: "ИИ формулирует объяснение…",
@@ -190,6 +236,7 @@ const ru: Dict = {
   logCheckBin: "Предложено сверить БИН получателя.",
   logCheckSupplier: "Предложено проверить фирму в госреестре.",
   logBlockedServer: "Сервер не пропустил платёж: проверка его остановила.",
+  logEmail: (n) => `Прочитано письмо: ${n}`,
   contactSource: (s) => `Источник: ${s}`,
   contactNoPhone: "Договора с этой фирмой нет, поэтому проверенного номера у банка нет.",
   dontCall: "Не звоните на номер из счёта,",
@@ -206,7 +253,9 @@ const ru: Dict = {
     unknown_sample: "Такого примера нет. Выберите сценарий из списка.",
     no_file: "Файл не получен. Выберите PDF ещё раз.",
     too_big: "Файл больше 15 МБ. Приложите счёт поменьше.",
-    not_pdf: "Это не PDF. Приложите счёт в формате PDF.",
+    not_pdf: "Это не PDF и не письмо. Приложите счёт PDF или письмо .eml.",
+    bad_email: "Не удалось прочитать письмо. Сохраните его из почты как файл .eml и приложите ещё раз.",
+    no_pdf_in_email: "В письме нет счёта PDF. Письмо показано справа, поля платежа заполните вручную.",
     generic: "Не удалось связаться с сервером. Попробуйте ещё раз.",
   },
   warnNoText: "В PDF нет текстового слоя, это скан. Сверьте поля с оригиналом и при необходимости введите вручную.",
@@ -237,6 +286,8 @@ const kk: Dict = {
   purposePh: "№ … шот бойынша төлем",
   attachPdf: "PDF шотты тіркеу",
   attachHint: "Өрістер шоттан өздігінен толады. Бәрібір төлем өрістері тексеріледі.",
+  attachEmail: "Хатты тіркеу",
+  attachEmailHint: "Шот хатпен келсе, хаттың өзін (.eml) тіркеңіз: жіберушіні де тексереміз.",
   payNote: "Жіберер алдында банк алушыны өз деректері бойынша тексереді.",
   extracting: "Шотты оқып, өрістерді толтырып жатырмын…",
   checking: "Банк алушыны тексеріп жатыр…",
@@ -265,6 +316,26 @@ const kk: Dict = {
   noPdf: "Төлем PDF-сіз толтырылды. Банк төлем өрістерін тексереді, бұған файл қажет емес.",
   legendIban: "Шот нөмірі",
   legendWarn: "Деректемелерді ауыстыру өтініші, телефон",
+  emailTitle: "Шот келген хат",
+  emailFrom: "Кімнен",
+  emailReplyTo: "Жауап кетеді",
+  emailAuth: "Түпнұсқалық",
+  emailSubject: "Тақырып",
+  emailDate: "Күні",
+  emailBody: "Хат мәтіні",
+  emailNoSubject: "(тақырыпсыз)",
+  authWord: { pass: "өтті", fail: "өтпеді", none: "дерек жоқ" },
+  authOk: "Пошта сервері растады: хат осы мекенжайдан жіберілген",
+  authBad: "Пошта сервері хатты мекенжай иесі жібергенін растамады",
+  authUnknown: "Пошта сервері хаттың түпнұсқа екенін хабарламады",
+  tagLookalike: "ұқсас жалған мекенжай",
+  tagDomainDiffers: "шарттағы мекенжай емес",
+  tagFreeMail: "тегін пошта",
+  tagReplyTo: "басқа мекенжай",
+  pressureAi: "Қысымды ЖИ тапты",
+  pressureLocal: "Қысым кілт сөздер бойынша табылды",
+  pressureNone: "Асықтыратын не қысым жасайтын сөздер табылмады",
+  pressureKinds: { urgency: "Асықтырады", no_call: "Қоңырау шалмауды сұрайды", new_details: "Жаңа деректемелер", secrecy: "Үндемеуді сұрайды", authority: "Басшыға сілтейді" },
   aiTitle: "ЖИ түсіндірмесі",
   aiModel: (m) => `${m} моделі. Шешімді тексеру қабылдайды, ЖИ оны түсіндіреді.`,
   aiThinking: "ЖИ түсіндірме жазып жатыр…",
@@ -287,6 +358,7 @@ const kk: Dict = {
   logCheckBin: "Алушының БСН-ын салыстыру ұсынылды.",
   logCheckSupplier: "Фирманы мемлекеттік тізілімнен тексеру ұсынылды.",
   logBlockedServer: "Сервер төлемді өткізбеді: тексеру оны тоқтатты.",
+  logEmail: (n) => `Хат оқылды: ${n}`,
   contactSource: (s) => `Дереккөз: ${s}`,
   contactNoPhone: "Бұл фирмамен шарт жоқ, сондықтан банкте тексерілген нөмір жоқ.",
   dontCall: "Шоттағы нөмірге қоңырау шалмаңыз,",
@@ -306,7 +378,9 @@ const kk: Dict = {
     unknown_sample: "Мұндай мысал жоқ. Тізімнен сценарий таңдаңыз.",
     no_file: "Файл алынбады. PDF файлын қайта таңдаңыз.",
     too_big: "Файл 15 МБ-тан үлкен. Кішірек шот тіркеңіз.",
-    not_pdf: "Бұл PDF емес. Шотты PDF форматында тіркеңіз.",
+    not_pdf: "Бұл PDF те, хат та емес. Шотты PDF немесе .eml хат ретінде тіркеңіз.",
+    bad_email: "Хатты оқу мүмкін болмады. Оны поштадан .eml файл ретінде сақтап, қайта тіркеңіз.",
+    no_pdf_in_email: "Хатта PDF шот жоқ. Хат оң жақта көрсетілген, төлем өрістерін қолмен толтырыңыз.",
     generic: "Сервермен байланыс болмады. Қайта көріңіз.",
   },
   warnNoText: "PDF-те мәтін қабаты жоқ, бұл скан. Өрістерді түпнұсқамен салыстырып, қажет болса қолмен енгізіңіз.",
@@ -337,6 +411,8 @@ const en: Dict = {
   purposePh: "Payment for invoice No. …",
   attachPdf: "Attach invoice PDF",
   attachHint: "The fields fill in from the invoice. The check still runs on the payment fields.",
+  attachEmail: "Attach email",
+  attachEmailHint: "If the invoice came by email, attach the email itself (.eml): we'll check the sender too.",
   payNote: "Before sending, the bank checks the recipient against its own data.",
   extracting: "Reading the invoice and filling in the fields…",
   checking: "The bank is checking the recipient…",
@@ -365,6 +441,26 @@ const en: Dict = {
   noPdf: "This payment was filled in without a PDF. The bank checks the payment fields; no file is needed.",
   legendIban: "Account number",
   legendWarn: "Request to change details, phone",
+  emailTitle: "The email the invoice came in",
+  emailFrom: "From",
+  emailReplyTo: "Replies go to",
+  emailAuth: "Authenticity",
+  emailSubject: "Subject",
+  emailDate: "Date",
+  emailBody: "Email text",
+  emailNoSubject: "(no subject)",
+  authWord: { pass: "passed", fail: "failed", none: "no data" },
+  authOk: "The mail server confirmed the email was sent from this address",
+  authBad: "The mail server could not confirm that the owner of the address sent this email",
+  authUnknown: "The mail server did not say whether the email is genuine",
+  tagLookalike: "lookalike address",
+  tagDomainDiffers: "not the contract address",
+  tagFreeMail: "free mailbox",
+  tagReplyTo: "different address",
+  pressureAi: "Pressure found by AI",
+  pressureLocal: "Pressure found by key phrases",
+  pressureNone: "No words rushing or pressuring you were found",
+  pressureKinds: { urgency: "Rushing you", no_call: "Asks you not to call", new_details: "New bank details", secrecy: "Asks for secrecy", authority: "Invokes the boss" },
   aiTitle: "AI explanation",
   aiModel: (m) => `Model ${m}. The check makes the decision, the AI explains it.`,
   aiThinking: "The AI is writing an explanation…",
@@ -387,6 +483,7 @@ const en: Dict = {
   logCheckBin: "Suggested checking the recipient's BIN.",
   logCheckSupplier: "Suggested checking the company in the state registry.",
   logBlockedServer: "The server refused the payment: the check stopped it.",
+  logEmail: (n) => `Email read: ${n}`,
   contactSource: (s) => `Source: ${s}`,
   contactNoPhone: "There is no contract with this company, so the bank has no verified number.",
   dontCall: "Don't call the number on the invoice,",
@@ -406,7 +503,9 @@ const en: Dict = {
     unknown_sample: "That sample doesn't exist. Pick a scenario from the list.",
     no_file: "No file received. Choose the PDF again.",
     too_big: "The file is over 15 MB. Attach a smaller invoice.",
-    not_pdf: "This isn't a PDF. Attach the invoice as a PDF.",
+    not_pdf: "This isn't a PDF or an email. Attach the invoice PDF or an .eml email.",
+    bad_email: "Couldn't read the email. Save it from your mail app as an .eml file and attach it again.",
+    no_pdf_in_email: "There's no invoice PDF in the email. The email is shown on the right; fill in the payment fields by hand.",
     generic: "Couldn't reach the server. Please try again.",
   },
   warnNoText: "The PDF has no text layer, it's a scan. Compare the fields with the original and type them in if needed.",
