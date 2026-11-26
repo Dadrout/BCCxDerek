@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import type { BankContext, Payment } from "@/lib/bank/types";
 import { DEMO_TODAY } from "@/lib/demo";
 import { bankByIban } from "@/lib/iban";
+import { domainOf, isFreeMail, isLookalike, sameOrg } from "@/lib/email/domains";
 import type { ParsedPayment } from "./validate.ts";
 import {
   SEVERITY,
@@ -63,7 +64,7 @@ function chooseAction(main: Signal, verdict: Verdict, hasContract: boolean): Act
 }
 
 export function fingerprint(clientBin: string, p: ParsedPayment, hints?: DocumentHints): string {
-  const parts = [clientBin, p.name, p.bin, p.iban, p.amount, hints?.changeRequestText ?? "", hints?.phoneInDocument ?? ""];
+  const parts = [clientBin, p.name, p.bin, p.iban, p.amount, hints?.changeRequestText ?? "", hints?.phoneInDocument ?? "", JSON.stringify(hints?.email ?? null)];
   return createHash("sha256").update(parts.join("|")).digest("hex");
 }
 
@@ -147,6 +148,21 @@ export function evaluate(
   const docPhone = opts.hints?.phoneInDocument;
   if (contract?.phone && docPhone && phoneDigits(contract.phone) !== phoneDigits(docPhone)) {
     add("phone_differs", { phone: docPhone, contractPhone: contract.phone });
+  }
+
+  // Письмо: адрес отправителя против договора, Reply-To, проверка подлинности, давление. Утверждение смены реквизитов эти сигналы не понижает.
+  const mail = opts.hints?.email;
+  if (mail) {
+    const domain = domainOf(mail.fromAddress);
+    const contractDomain = contract?.email ? domainOf(contract.email) : "";
+    if (isFreeMail(domain)) add("email_free_mail", { domain });
+    else if (contractDomain && !sameOrg(domain, contractDomain)) {
+      add(isLookalike(domain, contractDomain) ? "email_lookalike" : "email_domain_differs", { domain, contractDomain });
+    }
+    const replyDomain = mail.replyTo ? domainOf(mail.replyTo) : "";
+    if (replyDomain && !sameOrg(replyDomain, domain)) add("email_reply_to", { replyTo: mail.replyTo! });
+    if (mail.authFailed) add("email_auth_failed");
+    if (mail.pressure.length > 0) add("email_pressure", { quote: mail.pressure[0].quote, count: mail.pressure.length });
   }
 
   // Без единого подтверждения зелёного быть не может (подтверждённая смена реквизитов тоже подтверждение).

@@ -1,7 +1,8 @@
 // Общий серверный запуск проверки: разбор полей, затем оценка по данным банка.
 import { parsePayment, type PaymentFields, type ParsedPayment } from "./validate";
 import { evaluate } from "./engine";
-import type { CheckOutcome, DocumentHints } from "./types";
+import type { CheckOutcome, DocumentHints, EmailHints } from "./types";
+import { PRESSURE_KINDS, type Pressure, type PressureKind } from "@/lib/email/pressure";
 import { getBank } from "@/lib/bank/store";
 import { readApprovals } from "@/lib/bank/approvals";
 import { DEMO_CLIENT } from "@/lib/bank/fixtures";
@@ -40,7 +41,27 @@ export async function readBody(req: Request): Promise<{ body: Record<string, unk
       ? {
           changeRequestText: typeof (h as DocumentHints).changeRequestText === "string" ? (h as DocumentHints).changeRequestText : null,
           phoneInDocument: typeof (h as DocumentHints).phoneInDocument === "string" ? (h as DocumentHints).phoneInDocument : null,
+          email: readEmail((h as Record<string, unknown>).email),
         }
       : undefined;
   return { body, fields, hints };
+}
+
+// Подсказки из письма: принимаем только строго правильную форму, иначе считаем, что письма нет.
+function readEmail(v: unknown): EmailHints | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const e = v as Record<string, unknown>;
+  if (typeof e.fromAddress !== "string" || e.fromAddress.length > 320) return null;
+  if (e.replyTo !== null && (typeof e.replyTo !== "string" || e.replyTo.length > 320)) return null;
+  if (typeof e.authFailed !== "boolean") return null;
+  if (!Array.isArray(e.pressure) || e.pressure.length > 10) return null;
+  const pressure: Pressure[] = [];
+  for (const x of e.pressure) {
+    if (!x || typeof x !== "object") return null;
+    const { kind, quote } = x as Record<string, unknown>;
+    if (typeof kind !== "string" || !(PRESSURE_KINDS as readonly string[]).includes(kind)) return null;
+    if (typeof quote !== "string" || quote.length > 300) return null;
+    pressure.push({ kind: kind as PressureKind, quote });
+  }
+  return { fromAddress: e.fromAddress, replyTo: e.replyTo as string | null, authFailed: e.authFailed, pressure };
 }

@@ -78,6 +78,20 @@ describe("api", () => {
     expect(ok.status).toBe(200);
   });
 
+  test("hints.email changes the fingerprint; malformed hints.email is treated as no email", async () => {
+    const base = { changeRequestText: null, phoneInDocument: null };
+    const email = { fromAddress: "x@other.kz", replyTo: null, authFailed: false, pressure: [] };
+    const plain = await (await checkPOST(json("check", { fields: dalaFields, hints: base }))).json();
+    const withEmail = await (await checkPOST(json("check", { fields: dalaFields, hints: { ...base, email } }))).json();
+    expect(withEmail.fingerprint).not.toBe(plain.fingerprint);
+    expect(withEmail.signals.map((s: { id: string }) => s.id)).toContain("email_domain_differs");
+    const bad = await checkPOST(json("check", { fields: dalaFields, hints: { ...base, email: { fromAddress: 5 } } }));
+    expect(bad.status).toBe(200);
+    const badBody = await bad.json();
+    expect(badBody.fingerprint).toBe(plain.fingerprint);
+    expect(badBody.signals.map((s: { id: string }) => s.id).filter((id: string) => id.startsWith("email_"))).toEqual([]);
+  });
+
   test("pay: ok verdict → 200 sent", async () => {
     const c = await check(dalaFields);
     expect(c.verdict).toBe("ok");

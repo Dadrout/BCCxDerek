@@ -30,6 +30,12 @@ const PARAMS: Record<SignalId, Record<string, string | number>> = {
   change_request: { text: "новые реквизиты" },
   phone_differs: { phone: "+7 701 111 11 11", contractPhone: "+7 727 222 22 22" },
   nothing_to_compare: {},
+  email_lookalike: { domain: "dalatrans-kz.com", contractDomain: "dalatrans.kz" },
+  email_domain_differs: { domain: "other.kz", contractDomain: "dalatrans.kz" },
+  email_free_mail: { domain: "gmail.com" },
+  email_reply_to: { replyTo: "pay@evil.kz" },
+  email_auth_failed: {},
+  email_pressure: { quote: "оплатите срочно", count: 2 },
 };
 const sig = (id: SignalId, params = PARAMS[id]): Signal => ({ id, severity: SEVERITY[id], params });
 

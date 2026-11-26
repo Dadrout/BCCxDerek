@@ -1,4 +1,5 @@
 // Типы движка сигналов. Порядок SIGNAL_ORDER — приоритет: первый сигнал наивысшей серьёзности становится главной причиной.
+import type { Pressure } from "@/lib/email/pressure";
 import type { FieldError } from "./validate.ts";
 
 export const SIGNAL_ORDER = [
@@ -7,6 +8,7 @@ export const SIGNAL_ORDER = [
   "account_not_found",
   "iban_reported",
   "homoglyphs",
+  "email_lookalike",
   "bin_not_found",
   "supplier_unreliable",
   "own_history_changed",
@@ -17,6 +19,11 @@ export const SIGNAL_ORDER = [
   "name_mismatch",
   "change_request",
   "phone_differs",
+  "email_domain_differs",
+  "email_free_mail",
+  "email_reply_to",
+  "email_auth_failed",
+  "email_pressure",
   "nothing_to_compare",
   "change_approved",
   "first_payment",
@@ -37,6 +44,7 @@ export const SEVERITY: Record<SignalId, Severity> = {
   account_not_found: "stop",
   iban_reported: "stop",
   homoglyphs: "stop",
+  email_lookalike: "stop",
   bin_not_found: "stop",
   supplier_unreliable: "stop",
   own_history_changed: "stop",
@@ -47,6 +55,11 @@ export const SEVERITY: Record<SignalId, Severity> = {
   name_mismatch: "check",
   change_request: "check",
   phone_differs: "check",
+  email_domain_differs: "check",
+  email_free_mail: "check",
+  email_reply_to: "check",
+  email_auth_failed: "check",
+  email_pressure: "check",
   nothing_to_compare: "check",
   change_approved: "info",
   first_payment: "info",
@@ -69,8 +82,11 @@ export type CheckOutcome =
   | { kind: "verdict"; verdict: Verdict; main: Signal; action: Action; signals: Signal[]; contact: Contact | null; fingerprint: string }
   | { kind: "fix_fields"; errors: FieldError[] };
 
-// Подсказки из приложенного PDF (необязательно).
-export type DocumentHints = { changeRequestText: string | null; phoneInDocument: string | null };
+// Подсказки из приложенного письма (.eml): отправитель, Reply-To, проверка подлинности, давление в тексте.
+export type EmailHints = { fromAddress: string; replyTo: string | null; authFailed: boolean; pressure: Pressure[] };
+
+// Подсказки из приложенного PDF и письма (необязательно).
+export type DocumentHints = { changeRequestText: string | null; phoneInDocument: string | null; email?: EmailHints | null };
 
 // Утверждённая вторым сотрудником смена реквизитов (хранилище — задача 4).
 export type Approval = { clientBin: string; bin: string; iban: string; approvedAt: string; approvedBy: string };

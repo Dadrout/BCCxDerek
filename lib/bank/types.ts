@@ -32,6 +32,7 @@ export type Contract = {
   person: string;
   role: string;
   phone: string;
+  email: string;
   source: string;
 };
 

@@ -71,5 +71,6 @@ export const DALA_CONTRACT = {
   person: "Ахметов Ерлан Серикович",
   role: "директор",
   phone: "+7 727 355 18 40",
+  email: "info@dalatrans.kz",
   source: "договор № 14/2025 от 10.01.2025",
 };

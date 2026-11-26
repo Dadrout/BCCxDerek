@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { evaluate, fingerprint } from "@/lib/signals/engine";
-import { SEVERITY, SIGNAL_ORDER, type SignalId } from "@/lib/signals/types";
+import { SEVERITY, SIGNAL_ORDER, type Approval, type DocumentHints, type EmailHints, type SignalId } from "@/lib/signals/types";
 import type { ParsedPayment } from "@/lib/signals/validate";
 import { makeBank } from "@/lib/bank/store";
 import type { Account, BankRaw, Company, Payment } from "@/lib/bank/types";
@@ -48,7 +48,7 @@ const BASE: BankRaw = {
   accounts: ACCOUNTS,
   registry: REGISTRY,
   complaints: [],
-  contracts: [{ clientBin: CLIENT, supplierBin: DALA_BIN, person: "Ахметов Б.", role: "директор", phone: "+7 701 111 22 33", source: "договор №12" }],
+  contracts: [{ clientBin: CLIENT, supplierBin: DALA_BIN, person: "Ахметов Б.", role: "директор", phone: "+7 701 111 22 33", email: "info@dalatrans.kz", source: "договор №12" }],
 };
 
 // Добавляет записи к базе; более поздние записи реестра/счетов перекрывают ранние (Map по ключу).
@@ -73,16 +73,17 @@ const find = (r: ReturnType<typeof evaluate>, id: SignalId) => r.signals.find((s
 describe("types", () => {
   test("SIGNAL_ORDER lists every signal in priority order with spec severities", () => {
     expect(SIGNAL_ORDER).toEqual([
-      "owner_individual", "owner_mismatch", "account_not_found", "iban_reported", "homoglyphs", "bin_not_found", "supplier_unreliable",
+      "owner_individual", "owner_mismatch", "account_not_found", "iban_reported", "homoglyphs", "email_lookalike", "bin_not_found", "supplier_unreliable",
       "own_history_changed", "crowd_mismatch", "account_new", "supplier_young", "supplier_inactive", "name_mismatch",
-      "change_request", "phone_differs", "nothing_to_compare", "change_approved", "first_payment", "owner_unknown",
+      "change_request", "phone_differs", "email_domain_differs", "email_free_mail", "email_reply_to", "email_auth_failed", "email_pressure", "nothing_to_compare", "change_approved", "first_payment", "owner_unknown",
       "amount_unusual", "crowd_confirms", "own_history_ok", "owner_ok",
     ]);
     expect(SEVERITY).toEqual({
-      owner_individual: "stop", owner_mismatch: "stop", account_not_found: "stop", iban_reported: "stop", homoglyphs: "stop", bin_not_found: "stop",
+      owner_individual: "stop", owner_mismatch: "stop", account_not_found: "stop", iban_reported: "stop", homoglyphs: "stop", email_lookalike: "stop", bin_not_found: "stop",
       supplier_unreliable: "stop", own_history_changed: "stop", crowd_mismatch: "stop",
       account_new: "check", supplier_young: "check", supplier_inactive: "check", name_mismatch: "check",
-      change_request: "check", phone_differs: "check", nothing_to_compare: "check",
+      change_request: "check", phone_differs: "check", email_domain_differs: "check", email_free_mail: "check", email_reply_to: "check",
+      email_auth_failed: "check", email_pressure: "check", nothing_to_compare: "check",
       change_approved: "info", first_payment: "info", owner_unknown: "info", amount_unusual: "info",
       crowd_confirms: "ok", own_history_ok: "ok", owner_ok: "ok",
     });
@@ -354,5 +355,78 @@ describe("rules", () => {
     expect(fingerprint(CLIENT, dala, h)).not.toBe(fp);
     expect(fingerprint(CLIENT, dala, { ...h, phoneInDocument: null })).not.toBe(fingerprint(CLIENT, dala, h));
     expect(evaluate(dala, bank, { ...opts, hints: h }).fingerprint).toBe(fingerprint(CLIENT, dala, h));
+  });
+});
+
+describe("email signals", () => {
+  const mail = (fromAddress: string, extra: Partial<EmailHints> = {}): DocumentHints => ({
+    changeRequestText: null,
+    phoneInDocument: null,
+    email: { fromAddress, replyTo: null, authFailed: false, pressure: [], ...extra },
+  });
+  const run = (p: ParsedPayment, hints: DocumentHints, approvals?: Approval[]) => evaluate(p, bank, { ...opts, hints, approvals });
+  const emailIds = (r: ReturnType<typeof evaluate>) => ids(r).filter((id) => id.startsWith("email_"));
+
+  test("lookalike sender with an IBAN at another bank: stop, main reason is the lookalike", () => {
+    const r = run({ ...dala, iban: KASPI_IBAN }, mail("buh@dalatrans-kz.com"));
+    expect(r.verdict).toBe("stop");
+    expect(r.main.id).toBe("email_lookalike");
+    expect(find(r, "email_lookalike")?.params).toEqual({ domain: "dalatrans-kz.com", contractDomain: "dalatrans.kz" });
+    expect(ids(r)).toContain("own_history_changed");
+    expect(ids(r)).toContain("owner_unknown");
+  });
+
+  test("subdomain of the contract domain and the right IBAN: no email signal, verdict ok", () => {
+    const r = run(dala, mail("info@mail.dalatrans.kz"));
+    expect(emailIds(r)).toEqual([]);
+    expect(r.verdict).toBe("ok");
+  });
+
+  test("free mail: email_free_mail, no email_domain_differs", () => {
+    const r = run(dala, mail("x@gmail.com"));
+    expect(find(r, "email_free_mail")?.params).toEqual({ domain: "gmail.com" });
+    expect(ids(r)).not.toContain("email_domain_differs");
+    expect(r.verdict).toBe("check");
+  });
+
+  test("another company domain: email_domain_differs", () => {
+    const r = run(dala, mail("x@other.kz"));
+    expect(find(r, "email_domain_differs")?.params).toEqual({ domain: "other.kz", contractDomain: "dalatrans.kz" });
+    expect(ids(r)).not.toContain("email_lookalike");
+  });
+
+  test("Reply-To on a different domain: email_reply_to; same organisation: nothing", () => {
+    expect(find(run(dala, mail("info@dalatrans.kz", { replyTo: "pay@evil.kz" })), "email_reply_to")?.params).toEqual({ replyTo: "pay@evil.kz" });
+    expect(emailIds(run(dala, mail("info@dalatrans.kz", { replyTo: "buh@mail.dalatrans.kz" })))).toEqual([]);
+  });
+
+  test("authFailed: email_auth_failed", () => {
+    expect(ids(run(dala, mail("info@dalatrans.kz", { authFailed: true })))).toContain("email_auth_failed");
+  });
+
+  test("pressure: email_pressure with the first quote and the count", () => {
+    const pressure = [
+      { kind: "urgency" as const, quote: "оплатите срочно" },
+      { kind: "no_call" as const, quote: "не звоните" },
+    ];
+    expect(find(run(dala, mail("info@dalatrans.kz", { pressure })), "email_pressure")?.params).toEqual({ quote: "оплатите срочно", count: 2 });
+  });
+
+  test("approval for the IBAN does not demote email signals", () => {
+    const approvals = [{ clientBin: CLIENT, bin: DALA_BIN, iban: KASPI_IBAN, approvedAt: "2026-11-26", approvedBy: "Сапарова А.К." }];
+    const r = run({ ...dala, iban: KASPI_IBAN }, mail("buh@dalatrans-kz.com"), approvals);
+    expect(find(r, "email_lookalike")?.severity).toBe("stop");
+    expect(r.verdict).toBe("stop");
+  });
+
+  test("supplier without a contract: no domain signal", () => {
+    const r = run(newSupplierOtherBank, mail("x@other.kz"));
+    expect(emailIds(r)).toEqual([]);
+  });
+
+  test("fingerprint depends on the email hints", () => {
+    const base = fingerprint(CLIENT, dala, { changeRequestText: null, phoneInDocument: null });
+    expect(fingerprint(CLIENT, dala, mail("x@other.kz"))).not.toBe(base);
+    expect(fingerprint(CLIENT, dala, { changeRequestText: null, phoneInDocument: null, email: null })).toBe(base);
   });
 });
