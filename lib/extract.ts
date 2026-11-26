@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { extractText, getDocumentProxy } from "unpdf";
 import type { Extraction, Field } from "./types";
 import { extractWithGroq, hasGroq } from "./groq";
+import { isStage } from "./demo";
 
 const FieldSchema = z.object({
   value: z.string().nullable(),
@@ -109,6 +110,8 @@ export async function extractLocally(pdf: Buffer, preText?: string): Promise<Ext
 }
 
 export async function extract(pdf: Buffer): Promise<Extraction> {
+  // Сценический режим: никаких обращений к сети.
+  if (isStage()) return extractLocally(pdf);
   // 1. Groq: локально берём текст PDF, ИИ извлекает реквизиты.
   if (hasGroq()) {
     const text = await pdfText(pdf).catch(() => "");
