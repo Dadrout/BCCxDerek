@@ -81,11 +81,11 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <span className="text-[15px] font-semibold">BCC Business</span>
             <span className="rounded-[4px] bg-white/12 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/80">{t.demo}</span>
-            {/* Логотип Derek: щит с галочкой-стрелкой (тот же, что в public/brand). */}
+            {/* Знак Derek: пропускной пункт со шлагбаумом (тот же, что в public/brand). */}
             <span className="flex items-center gap-1.5 text-[14px] font-semibold text-white/90">
               <svg aria-hidden viewBox="0 0 256 256" className="h-5 w-5">
-                <path fill="#F4F2EE" d="M53 24h150l21 21v66c0 55-36 96-96 121-60-25-96-66-96-121V45z" />
-                <path fill="#2B4A86" d="m69 124 18-18 25 25 42-42h-22V65h62v62h-24v-21l-58 58z" />
+                <path fill="none" stroke="#D9AB6E" strokeWidth="34" strokeLinecap="round" d="M128 52H90A38 38 0 0 0 52 90v76a38 38 0 0 0 38 38h76a38 38 0 0 0 38-38v-38" />
+                <path fill="none" stroke="#26AE60" strokeWidth="28" strokeLinecap="round" d="m173 59 24 24" />
               </svg>
               {PRODUCT_NAME}
             </span>

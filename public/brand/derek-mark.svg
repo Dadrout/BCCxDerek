@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img">
-  <title>Derek mark</title>
-  <path fill="#2B4A86" d="M53 24h150l21 21v66c0 55-36 96-96 121-60-25-96-66-96-121V45z"/>
-  <path fill="#F4F2EE" d="m69 124 18-18 25 25 42-42h-22V65h62v62h-24v-21l-58 58z"/>
+  <title>Derek</title>
+  <g>
+    <path fill="none" stroke="#D9AB6E" stroke-width="34" stroke-linecap="round"
+      d="M128 52H90A38 38 0 0 0 52 90v76a38 38 0 0 0 38 38h76a38 38 0 0 0 38-38v-38"/>
+    <path fill="none" stroke="#26AE60" stroke-width="28" stroke-linecap="round"
+      d="m173 59 24 24"/>
+  </g>
 </svg>

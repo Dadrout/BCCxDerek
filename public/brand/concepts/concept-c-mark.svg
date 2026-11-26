@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img">
+  <title>Derek mark | Payment orbit</title>
+  <g>
+    <g transform="rotate(-45 128 128)">
+      <path fill="none" stroke="#D9AB6E" stroke-width="33" stroke-linecap="round"
+        d="M167.07 83.82A100 48 0 1 0 213.72 152.72"/>
+      <circle cx="214" cy="98" r="18" fill="#26AE60"/>
+    </g>
+  </g>
+</svg>
