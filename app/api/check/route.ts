@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { runCheck } from "@/lib/signals/run";
-import type { PaymentFields } from "@/lib/signals/validate";
-import type { DocumentHints } from "@/lib/signals/types";
+import { runCheck, readBody } from "@/lib/signals/run";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const { fields, hints } = (await req.json()) as { fields: PaymentFields; hints?: DocumentHints };
-    return NextResponse.json(runCheck(fields, hints).outcome);
+    const b = await readBody(req);
+    if (!b) return NextResponse.json({ kind: "fix_fields", errors: [] }, { status: 400 });
+    return NextResponse.json(runCheck(b.fields, b.hints).outcome);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

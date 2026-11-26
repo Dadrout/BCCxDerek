@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { runCheck } from "@/lib/signals/run";
+import { runCheck, readBody } from "@/lib/signals/run";
 import { explainRisk, hasGroq, GROQ_MODEL } from "@/lib/groq";
-import type { PaymentFields } from "@/lib/signals/validate";
-import type { DocumentHints } from "@/lib/signals/types";
 import type { Lang } from "@/lib/i18n";
 
 export const runtime = "nodejs";
@@ -11,9 +9,11 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   if (!hasGroq()) return NextResponse.json({ text: null, code: "offline" });
   try {
-    const { fields, hints, lang } = (await req.json()) as { fields: PaymentFields; hints?: DocumentHints; lang: Lang };
+    const b = await readBody(req);
+    if (!b) return NextResponse.json({ text: null, code: "failed" }, { status: 400 });
+    const lang = b.body.lang as Lang;
     const l: Lang = ["ru", "kk", "en"].includes(lang) ? lang : "ru";
-    const { outcome } = runCheck(fields, hints);
+    const { outcome } = runCheck(b.fields, b.hints);
     if (outcome.kind !== "verdict") return NextResponse.json({ text: null, code: "failed", error: "fix_fields" });
     const text = await explainRisk(outcome, l);
     return NextResponse.json({ text, model: GROQ_MODEL() });

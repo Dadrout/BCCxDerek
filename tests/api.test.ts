@@ -92,6 +92,24 @@ describe("api", () => {
     expect(reset.signals.some((s: { id: string }) => s.id === "change_approved")).toBe(false);
   });
 
+  test("garbage bodies get 400 (invalid JSON, fields null/string)", async () => {
+    const bad = (url: string) => new Request(`http://x/api/${url}`, { method: "POST", body: "{not json", headers: { "content-type": "application/json" } });
+    const rc = await checkPOST(bad("check"));
+    expect(rc.status).toBe(400);
+    expect((await rc.json()).kind).toBe("fix_fields");
+    const rp = await payPOST(bad("pay"));
+    expect(rp.status).toBe(400);
+    expect(await rp.json()).toEqual({ result: "fix_fields" });
+    const rc2 = await checkPOST(json("check", { fields: null }));
+    expect(rc2.status).toBe(400);
+    const rp2 = await pay({ fields: null, fingerprint: "x" });
+    expect(rp2.status).toBe(400);
+    expect(await rp2.json()).toEqual({ result: "fix_fields" });
+    const ra = await approvalsPOST(json("approvals", { fields: "x" }));
+    expect(ra.status).toBe(400);
+    expect(await ra.json()).toEqual({ ok: false });
+  });
+
   test("extract rejects non-PDF and unknown sample", async () => {
     const fd = new FormData();
     fd.set("file", new File(["hello"], "a.pdf", { type: "application/pdf" }));
