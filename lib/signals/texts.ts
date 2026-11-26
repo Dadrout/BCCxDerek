@@ -18,6 +18,15 @@ const ruInBank = (name: string): string => {
   return `банке «${name}»`;
 };
 
+// Казахский: «Банк ЦентрКредит» -> «ЦентрКредит банкінде», без повтора слова «банк».
+const kkInBank = (name: string): string => {
+  if (name === "Народный Банк Казахстана") return "Қазақстан Халық банкінде";
+  const core = name.replace(/^Банк\s+/, "").replace(/\s+Bank$/i, "");
+  return `${core} банкінде`;
+};
+const enBankNames: Record<string, string> = { "Банк ЦентрКредит": "Bank CenterCredit", "Народный Банк Казахстана": "Halyk Bank" };
+const enBank = (name: string): string => enBankNames[name] ?? name;
+
 const RU: Record<SignalId, Fn> = {
   owner_mismatch: (p) => `Этот счёт принадлежит не «${s(p.name)}», а другому лицу`,
   owner_individual: () => "Счёт принадлежит частному лицу, а не фирме",
@@ -27,7 +36,7 @@ const RU: Record<SignalId, Fn> = {
   bin_not_found: (p) => `Фирмы с БИН ${s(p.bin)} не существует`,
   supplier_unreliable: (p) => `Фирма «${s(p.registryName)}» в списке неблагонадёжных налогоплательщиков`,
   own_history_changed: (p) => `Вы ${n(p.count)} ${pluralRu(n(p.count), "раз", "раза", "раз")} платили этой фирме на другой счёт`,
-  crowd_mismatch: (p) => `${n(p.count)} ${pluralRu(n(p.count), "клиент", "клиента", "клиентов")} банка платят этой фирме на другой счёт`,
+  crowd_mismatch: (p) => `${n(p.count)} ${pluralRu(n(p.count), "клиент", "клиента", "клиентов")} банка ${pluralRu(n(p.count), "платит", "платят", "платят")} этой фирме на другой счёт`,
   account_new: (p) => `Счёт открыт ${n(p.days)} ${pluralRu(n(p.days), "день", "дня", "дней")} назад`,
   supplier_young: (p) => `Фирма зарегистрирована ${n(p.days)} ${pluralRu(n(p.days), "день", "дня", "дней")} назад`,
   supplier_inactive: (p) => `Фирма «${s(p.registryName)}» числится бездействующей`,
@@ -39,7 +48,7 @@ const RU: Record<SignalId, Fn> = {
   first_payment: () => "Вы платите этой фирме впервые",
   owner_unknown: (p) => (s(p.bankName) ? `Счёт в другом банке (${s(p.bankName)}), владельца проверить нельзя` : "Счёт в другом банке, владельца проверить нельзя"),
   amount_unusual: (p) => `Сумма на ${n(p.percent)}% выше обычной`,
-  crowd_confirms: (p) => `${n(p.count)} ${pluralRu(n(p.count), "клиент", "клиента", "клиентов")} банка платят этой фирме на этот же счёт`,
+  crowd_confirms: (p) => `${n(p.count)} ${pluralRu(n(p.count), "клиент", "клиента", "клиентов")} банка ${pluralRu(n(p.count), "платит", "платят", "платят")} этой фирме на этот же счёт`,
   own_history_ok: (p) => `Вы уже ${n(p.count)} ${pluralRu(n(p.count), "раз", "раза", "раз")} платили на этот счёт`,
   owner_ok: () => "Счёт принадлежит этой фирме",
 };
@@ -47,7 +56,7 @@ const RU: Record<SignalId, Fn> = {
 const KK: Record<SignalId, Fn> = {
   owner_mismatch: (p) => `Бұл шот «${s(p.name)}» компаниясына емес, басқа тұлғаға тиесілі`,
   owner_individual: () => "Шот фирмаға емес, жеке тұлғаға тиесілі",
-  account_not_found: (p) => (s(p.bankName) ? `${s(p.bankName)} банкінде мұндай шот жоқ` : "Банкте мұндай шот жоқ"),
+  account_not_found: (p) => (s(p.bankName) ? `${kkInBank(s(p.bankName))} мұндай шот жоқ` : "Банкте мұндай шот жоқ"),
   iban_reported: (p) => `Бұл шотқа қатысты алаяқтық туралы шағымдар бұрын түскен (${n(p.count)})`,
   homoglyphs: () => "Шот нөмірінде латынға ұқсайтын орыс әріптері бар. Жалғандықты осылай жасырады",
   bin_not_found: (p) => `БСН ${s(p.bin)} бар фирма жоқ`,
@@ -73,7 +82,7 @@ const KK: Record<SignalId, Fn> = {
 const EN: Record<SignalId, Fn> = {
   owner_mismatch: (p) => `This account does not belong to "${s(p.name)}" but to someone else`,
   owner_individual: () => "The account belongs to a private person, not a company",
-  account_not_found: (p) => (s(p.bankName) ? `There is no such account at ${s(p.bankName)}` : "There is no such account at the bank"),
+  account_not_found: (p) => (s(p.bankName) ? `There is no such account at ${enBank(s(p.bankName))}` : "There is no such account at the bank"),
   iban_reported: (p) => `Other customers have already reported this account for fraud (${n(p.count)} ${enPl(n(p.count), "report", "reports")})`,
   homoglyphs: () => "The account number contains Russian letters that look like Latin ones. This is a common way to disguise a fake",
   bin_not_found: (p) => `No company with BIN ${s(p.bin)} exists`,

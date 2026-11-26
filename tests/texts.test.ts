@@ -58,6 +58,18 @@ describe("signalText", () => {
     expect(f(3)).toContain("3 клиента");
     expect(f(48)).toContain("48 клиентов");
   });
+  test("ru verb agrees with count", () => {
+    const m = (count: number) => signalText(sig("crowd_mismatch", { count }), "ru");
+    const c = (count: number) => signalText(sig("crowd_confirms", { count }), "ru");
+    expect(m(1)).toBe("1 клиент банка платит этой фирме на другой счёт");
+    expect(m(3)).toBe("3 клиента банка платят этой фирме на другой счёт");
+    expect(m(21)).toBe("21 клиент банка платит этой фирме на другой счёт");
+    expect(m(48)).toBe("48 клиентов банка платят этой фирме на другой счёт");
+    expect(c(1)).toBe("1 клиент банка платит этой фирме на этот же счёт");
+    expect(c(3)).toBe("3 клиента банка платят этой фирме на этот же счёт");
+    expect(c(21)).toBe("21 клиент банка платит этой фирме на этот же счёт");
+    expect(c(48)).toBe("48 клиентов банка платят этой фирме на этот же счёт");
+  });
   test("ru plurals: days", () => {
     const f = (days: number) => signalText(sig("account_new", { days }), "ru");
     expect(f(1)).toContain("1 день");
@@ -68,6 +80,12 @@ describe("signalText", () => {
     expect(signalText(sig("account_not_found", { bankName: "" }), "ru")).toBe("Такого счёта в банке нет");
     expect(signalText(sig("account_not_found", {}), "ru")).toBe("Такого счёта в банке нет");
     expect(signalText(sig("account_not_found"), "ru")).toBe("Такого счёта в Банке ЦентрКредит нет");
+  });
+  test("account_not_found kk/en do not double the word bank", () => {
+    expect(signalText(sig("account_not_found"), "kk")).toBe("ЦентрКредит банкінде мұндай шот жоқ");
+    expect(signalText(sig("account_not_found"), "en")).toBe("There is no such account at Bank CenterCredit");
+    expect(signalText(sig("account_not_found", { bankName: "" }), "kk")).toBe("Банкте мұндай шот жоқ");
+    expect(signalText(sig("account_not_found", {}), "en")).toBe("There is no such account at the bank");
   });
   test("owner_unknown without bank name", () => {
     for (const lang of LANGS) {
