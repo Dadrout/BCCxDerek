@@ -400,6 +400,21 @@ describe("email signals", () => {
     expect(emailIds(run(dala, mail("info@dalatrans.kz", { replyTo: "buh@mail.dalatrans.kz" })))).toEqual([]);
   });
 
+  test("empty or malformed From: no sender-domain signals, Reply-To and auth still apply", () => {
+    for (const from of ["", "no-at-sign"]) {
+      const r = run(dala, mail(from, { replyTo: "pay@evil.kz", authFailed: true }));
+      expect(ids(r)).not.toContain("email_domain_differs");
+      expect(ids(r)).not.toContain("email_free_mail");
+      expect(ids(r)).not.toContain("email_lookalike");
+      expect(ids(r)).toContain("email_reply_to");
+      expect(ids(r)).toContain("email_auth_failed");
+    }
+  });
+
+  test("address case does not matter", () => {
+    expect(emailIds(run(dala, mail("Info@DalaTrans.KZ")))).toEqual([]);
+  });
+
   test("authFailed: email_auth_failed", () => {
     expect(ids(run(dala, mail("info@dalatrans.kz", { authFailed: true })))).toContain("email_auth_failed");
   });

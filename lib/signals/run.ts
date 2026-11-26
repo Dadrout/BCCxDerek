@@ -52,6 +52,7 @@ function readEmail(v: unknown): EmailHints | null {
   if (!v || typeof v !== "object" || Array.isArray(v)) return null;
   const e = v as Record<string, unknown>;
   if (typeof e.fromAddress !== "string" || e.fromAddress.length > 320) return null;
+  if (e.replyTo === undefined) e.replyTo = null;
   if (e.replyTo !== null && (typeof e.replyTo !== "string" || e.replyTo.length > 320)) return null;
   if (typeof e.authFailed !== "boolean") return null;
   if (!Array.isArray(e.pressure) || e.pressure.length > 10) return null;

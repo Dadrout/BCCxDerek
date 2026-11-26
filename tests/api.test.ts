@@ -92,6 +92,13 @@ describe("api", () => {
     expect(badBody.signals.map((s: { id: string }) => s.id).filter((id: string) => id.startsWith("email_"))).toEqual([]);
   });
 
+  test("hints.email without replyTo is accepted as replyTo null", async () => {
+    const base = { changeRequestText: null, phoneInDocument: null };
+    const email = { fromAddress: "x@other.kz", authFailed: false, pressure: [] };
+    const r = await (await checkPOST(json("check", { fields: dalaFields, hints: { ...base, email } }))).json();
+    expect(r.signals.map((s: { id: string }) => s.id)).toContain("email_domain_differs");
+  });
+
   test("pay: ok verdict → 200 sent", async () => {
     const c = await check(dalaFields);
     expect(c.verdict).toBe("ok");

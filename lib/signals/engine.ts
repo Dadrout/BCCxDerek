@@ -155,7 +155,10 @@ export function evaluate(
   if (mail) {
     const domain = domainOf(mail.fromAddress);
     const contractDomain = contract?.email ? domainOf(contract.email) : "";
-    if (isFreeMail(domain)) add("email_free_mail", { domain });
+    // Пустой домен (нет From или адрес без «@»): проверки домена отправителя пропускаем.
+    if (!domain) {
+      // нечего сравнивать
+    } else if (isFreeMail(domain)) add("email_free_mail", { domain });
     else if (contractDomain && !sameOrg(domain, contractDomain)) {
       add(isLookalike(domain, contractDomain) ? "email_lookalike" : "email_domain_differs", { domain, contractDomain });
     }
