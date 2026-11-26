@@ -80,6 +80,14 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <span className="text-[15px] font-semibold">BCC Business</span>
             <span className="rounded-[4px] bg-white/12 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/80">{t.demo}</span>
+            {/* Логотип Derek: щит с галочкой-стрелкой (тот же, что в public/brand). */}
+            <span className="flex items-center gap-1.5 text-[14px] font-semibold text-white/90">
+              <svg aria-hidden viewBox="0 0 256 256" className="h-5 w-5">
+                <path fill="#F4F2EE" d="M53 24h150l21 21v66c0 55-36 96-96 121-60-25-96-66-96-121V45z" />
+                <path fill="#2B4A86" d="m69 124 18-18 25 25 42-42h-22V65h62v62h-24v-21l-58 58z" />
+              </svg>
+              {PRODUCT_NAME}
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:gap-x-6">
             <div role="group" aria-label={t.langSwitch} className="flex rounded-md bg-white/[0.07] p-0.5">

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 256" role="img">
+  <title>Derek</title>
+  <path fill="#F4F2EE" d="M53 24h150l21 21v66c0 55-36 96-96 121-60-25-96-66-96-121V45z"/>
+  <path fill="#2B4A86" d="m69 124 18-18 25 25 42-42h-22V65h62v62h-24v-21l-58 58z"/>
+  <g fill="#E8EDF2" transform="translate(268 73)">
+    <path fill-rule="evenodd" d="M0 0h35c34 0 56 21 56 54s-22 54-56 54H0zm21 19v70h13c23 0 36-13 36-35S57 19 34 19z"/>
+    <path fill-rule="evenodd" d="M41 28C17 28 0 46 0 69c0 25 17 41 42 41 15 0 28-6 37-15L68 82c-7 6-15 10-25 10-12 0-20-6-22-16h60c1-3 1-6 1-9 0-23-16-39-41-39zm-20 33c2-10 10-16 20-16 11 0 18 6 20 16z" transform="translate(104)"/>
+    <path d="M0 30h19v12c6-10 15-15 29-14h5v20h-7c-17 0-26 9-26 27v33H0z" transform="translate(200)"/>
+    <path fill-rule="evenodd" d="M41 28C17 28 0 46 0 69c0 25 17 41 42 41 15 0 28-6 37-15L68 82c-7 6-15 10-25 10-12 0-20-6-22-16h60c1-3 1-6 1-9 0-23-16-39-41-39zm-20 33c2-10 10-16 20-16 11 0 18 6 20 16z" transform="translate(263)"/>
+    <path d="M0 0h20v62l32-32h25L45 63l36 45H56L31 77 20 88v20H0z" transform="translate(358)"/>
+  </g>
+</svg>
