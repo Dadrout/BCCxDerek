@@ -24,6 +24,9 @@ test("BIN with spaces accepted; 11 digits is length error", () => {
 test("amount formats", () => {
   expect(parsePayment({ ...base, amount: "1 250 000,00" })).toMatchObject({ ok: true, value: { amount: 1250000 } });
   expect(parsePayment({ ...base, amount: "1250000.50" })).toMatchObject({ ok: true, value: { amount: 1250000 } });
+  expect(parsePayment({ ...base, amount: "1,250,000" })).toMatchObject({ ok: true, value: { amount: 1250000 } });
+  expect(parsePayment({ ...base, amount: "1.250.000" })).toMatchObject({ ok: true, value: { amount: 1250000 } });
+  expect(parsePayment({ ...base, amount: "1,5" })).toMatchObject({ ok: true, value: { amount: 1 } });
   expect(parsePayment({ ...base, amount: "0" })).toMatchObject({ ok: false, errors: [{ field: "amount", code: "not_positive" }] });
 });
 test("empty fields are reported together", () => {

@@ -43,9 +43,10 @@ function parseBin(raw: string): { bin: string; error?: FieldError["code"] } {
 function parseAmount(raw: string): { amount: number; error?: FieldError["code"] } {
   const compact = raw.replace(/\s/g, ""); // включая неразрывные пробелы
   if (compact === "") return { amount: 0, error: "empty" };
-  const whole = compact.split(/[.,]/)[0]; // дробная часть отбрасывается
-  if (!/^\d+$/.test(whole)) return { amount: 0, error: "bad_chars" };
-  const amount = Number(whole);
+  // Последний разделитель — десятичный, только если за ним 1–2 цифры в конце; группы по 3 цифры — тысячи.
+  const whole = compact.replace(/[.,]\d{1,2}$/, "");
+  if (!/^(\d+|\d{1,3}([.,]\d{3})+)$/.test(whole)) return { amount: 0, error: "bad_chars" };
+  const amount = Number(whole.replace(/[.,]/g, ""));
   if (amount <= 0) return { amount, error: "not_positive" };
   return { amount };
 }
