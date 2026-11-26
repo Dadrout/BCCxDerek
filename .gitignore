@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+tools/codex-last.md
+tools/codex-log.txt
+tools/*.log
+
+# demo runtime state and agent scratch
+/data/approvals.json
+/.superpowers/
