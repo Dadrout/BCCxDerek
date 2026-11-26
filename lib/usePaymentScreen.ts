@@ -6,6 +6,7 @@ import type { Action, CheckOutcome, DocumentHints } from "@/lib/signals/types";
 import type { FieldError, PaymentFields } from "@/lib/signals/validate";
 import type { Extraction } from "@/lib/types";
 import type { EmailView } from "@/lib/email/types";
+import type { Contract } from "@/lib/bank/types";
 import type { Scenario, ScenarioId } from "@/lib/scenarios";
 import { formatIban } from "@/lib/iban";
 import { scenarioTitle, signalText, verdictTitle } from "@/lib/signals/texts";
@@ -20,6 +21,8 @@ export type LogEntry = { id: number; time: string; render: (t: Dict, lang: Lang)
 export type Doc = { kind: "sample"; scenario: ScenarioId } | { kind: "upload"; name: string } | null;
 export type AiState = { state: "loading" | "done" | "offline" | "failed"; text?: string };
 export type ContactStep = "ask" | "approve" | null;
+// Договор поставщика из ответа /api/extract: контакт, реквизиты договора и пункты об оплате.
+export type ContractView = Pick<Contract, "person" | "source" | "paymentTerms">;
 
 export const EMPTY_FIELDS: PaymentFields = { name: "", bin: "", iban: "", amount: "", purpose: "" };
 
@@ -49,6 +52,7 @@ export function usePaymentScreen(lang: Lang) {
   const [hints, setHints] = useState<DocumentHints | undefined>(undefined);
   const [extraction, setExtraction] = useState<Extraction | null>(null);
   const [email, setEmail] = useState<EmailView | null>(null);
+  const [contract, setContract] = useState<ContractView | null>(null);
   const [unsure, setUnsure] = useState<FieldKey[]>([]);
   const [scenario, setScenario] = useState<ScenarioId | null>(null);
   const [doc, setDoc] = useState<Doc>(null);
@@ -89,6 +93,7 @@ export function usePaymentScreen(lang: Lang) {
     setHints(undefined);
     setExtraction(null);
     setEmail(null);
+    setContract(null);
     setUnsure([]);
     setScenario(null);
     setDoc(null);
@@ -117,6 +122,7 @@ export function usePaymentScreen(lang: Lang) {
       for (const k of ["name", "bin", "amount"] as const) if (!filled[k].trim() && fallback?.[k]) filled[k] = fallback[k]!;
       setFields(showFields(filled));
       setHints(j.hints as DocumentHints);
+      setContract((j.contract ?? null) as ContractView | null);
       if (j.email) {
         setEmail(j.email as EmailView);
         // Счёт из письма показываем из base64 через blob-адрес; прежний адрес освобождаем.
@@ -185,6 +191,7 @@ export function usePaymentScreen(lang: Lang) {
     setHints(undefined);
     setExtraction(null);
     setEmail(null);
+    setContract(null);
     setUnsure([]);
     dropVerdict();
     const fd = new FormData();
@@ -337,7 +344,7 @@ export function usePaymentScreen(lang: Lang) {
   }, [outcome, lang]);
 
   return {
-    fields, hints, extraction, email, unsure, scenario, doc, src, busy, outcome, pay, advice, contact, log, ai, aiModel, error,
+    fields, hints, extraction, email, contract, unsure, scenario, doc, src, busy, outcome, pay, advice, contact, log, ai, aiModel, error,
     pickScenario, attach, setField, runCheck, act, postpone, confirmChange, notChanged, approve, resetDemo,
     closeContact: () => setContact(null),
   };

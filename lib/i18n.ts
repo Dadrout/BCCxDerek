@@ -1,5 +1,6 @@
 // Тексты интерфейса на трёх языках. Ключ языка совпадает с атрибутом lang у <html>.
 // Тексты сигналов, вердиктов и действий лежат в lib/signals/texts.ts.
+import type { ConflictKind } from "@/lib/contract/compare";
 export type Lang = "kk" | "ru" | "en";
 export const LANGS: { id: Lang; label: string; name: string }[] = [
   { id: "kk", label: "ҚАЗ", name: "Қазақша" },
@@ -95,6 +96,14 @@ export type Dict = {
   pressureLocal: string;
   pressureNone: string;
   pressureKinds: Record<string, string>;
+  // Сверка с договором
+  contractTitle: string;
+  contractInEmail: string;
+  contractInInvoice: string;
+  contractClause: (clause: string) => string;
+  contractKinds: Record<ConflictKind, string>;
+  contractAi: string;
+  contractLocal: string;
   // ИИ
   aiTitle: string;
   aiModel: (m: string) => string;
@@ -214,6 +223,13 @@ const ru: Dict = {
   pressureLocal: "Давление найдено по ключевым фразам",
   pressureNone: "Слов, которые торопят или давят, не найдено",
   pressureKinds: { urgency: "Торопят", no_call: "Просят не звонить", new_details: "Новые реквизиты", secrecy: "Просят молчать", authority: "Ссылаются на начальство" },
+  contractTitle: "Сверка с договором",
+  contractInEmail: "В письме",
+  contractInInvoice: "В счёте",
+  contractClause: (c) => `В договоре, п. ${c}`,
+  contractKinds: { third_party: "Договор запрещает платить третьим лицам", details_change: "По договору реквизиты меняются только допсоглашением" },
+  contractAi: "Сверку сделал ИИ",
+  contractLocal: "Сверка по ключевым фразам",
   aiTitle: "Объяснение ИИ",
   aiModel: (m) => `Модель ${m}. Решение принимает проверка, ИИ его объясняет.`,
   aiThinking: "ИИ формулирует объяснение…",
@@ -336,6 +352,13 @@ const kk: Dict = {
   pressureLocal: "Қысым кілт сөздер бойынша табылды",
   pressureNone: "Асықтыратын не қысым жасайтын сөздер табылмады",
   pressureKinds: { urgency: "Асықтырады", no_call: "Қоңырау шалмауды сұрайды", new_details: "Жаңа деректемелер", secrecy: "Үндемеуді сұрайды", authority: "Басшыға сілтейді" },
+  contractTitle: "Шартпен салыстыру",
+  contractInEmail: "Хатта",
+  contractInInvoice: "Шотта",
+  contractClause: (c) => `Шартта, ${c}-тармақ`,
+  contractKinds: { third_party: "Шарт үшінші тұлғаларға төлеуге тыйым салады", details_change: "Шарт бойынша деректемелер тек қосымша келісіммен өзгереді" },
+  contractAi: "Салыстыруды ЖИ жасады",
+  contractLocal: "Кілт сөздер бойынша салыстырылды",
   aiTitle: "ЖИ түсіндірмесі",
   aiModel: (m) => `${m} моделі. Шешімді тексеру қабылдайды, ЖИ оны түсіндіреді.`,
   aiThinking: "ЖИ түсіндірме жазып жатыр…",
@@ -461,6 +484,13 @@ const en: Dict = {
   pressureLocal: "Pressure found by key phrases",
   pressureNone: "No words rushing or pressuring you were found",
   pressureKinds: { urgency: "Rushing you", no_call: "Asks you not to call", new_details: "New bank details", secrecy: "Asks for secrecy", authority: "Invokes the boss" },
+  contractTitle: "Contract check",
+  contractInEmail: "In the email",
+  contractInInvoice: "In the invoice",
+  contractClause: (c) => `In the contract, cl. ${c}`,
+  contractKinds: { third_party: "The contract forbids paying third parties", details_change: "Under the contract, bank details change only by a signed addendum" },
+  contractAi: "Checked by AI",
+  contractLocal: "Checked by key phrases",
   aiTitle: "AI explanation",
   aiModel: (m) => `Model ${m}. The check makes the decision, the AI explains it.`,
   aiThinking: "The AI is writing an explanation…",

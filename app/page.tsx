@@ -7,6 +7,7 @@ import PaymentForm from "@/components/PaymentForm";
 import VerdictPanel from "@/components/VerdictPanel";
 import ContactCard from "@/components/ContactCard";
 import EmailPanel from "@/components/EmailPanel";
+import ContractPanel from "@/components/ContractPanel";
 import { SCENARIOS, type Scenario } from "@/lib/scenarios";
 import { DEMO_CLIENT } from "@/lib/demo-client";
 import { actionLabel, scenarioHint, scenarioTitle } from "@/lib/signals/texts";
@@ -137,6 +138,9 @@ export default function Home() {
                 <VerdictPanel key={v.fingerprint + v.verdict} t={t} lang={lang} outcome={v} pay={s.pay} busy={s.busy} advice={s.advice}
                   ai={s.ai[lang]} aiModel={s.aiModel} onAct={s.act} onPostpone={s.postpone} onApprove={() => void s.approve()} onRecheck={() => void s.runCheck()} />
               </div>
+            )}
+            {s.hints?.contract && s.hints.contract.conflicts.length > 0 && (
+              <ContractPanel t={t} lang={lang} hints={s.hints.contract} source={s.contract?.source ?? null} />
             )}
             {s.email && <EmailPanel t={t} lang={lang} email={s.email} signals={v ? v.signals.map((x) => x.id) : null} />}
             <section aria-label={t.invoice}>
