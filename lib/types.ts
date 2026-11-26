@@ -15,15 +15,3 @@ export type Extraction = {
   change_request_text: string | null; // «просим оплачивать по новым реквизитам» и т.п.
   warning?: string;
 };
-
-export type Status = "match" | "mismatch" | "unreadable" | "new_supplier";
-
-export type CheckResult = {
-  status: Status;
-  headline: string;
-  reasons: string[];
-  extraction: Extraction;
-  supplier: import("./registry").SupplierCard | null;
-  iban: { document: string | null; reference: string | null; checksumOk: boolean; homoglyphs: boolean; diffPositions: number[]; documentBank: string | null };
-  bankSignal: { ibanSeenBefore: boolean; paymentsToThisIban: number; paymentsToSupplier: number; lastPayment: import("./registry").PastPayment | null; amountVsAvg: number | null };
-};

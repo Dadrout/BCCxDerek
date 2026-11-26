@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { extract } from "@/lib/extract";
-import { SAMPLES } from "@/lib/registry";
+import { SCENARIOS } from "@/lib/scenarios";
 import type { PaymentFields } from "@/lib/signals/validate";
 import type { DocumentHints } from "@/lib/signals/types";
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const sample = form.get("sample");
     let buf: Buffer;
     if (typeof sample === "string") {
-      if (!SAMPLES.some((s) => s.file === sample)) return NextResponse.json({ error: "Неизвестный пример", code: "unknown_sample" }, { status: 400 });
+      if (!SCENARIOS.some((s) => s.sample === sample)) return NextResponse.json({ error: "Неизвестный пример", code: "unknown_sample" }, { status: 400 });
       buf = await readFile(path.join(process.cwd(), "public", "samples", sample));
     } else {
       const file = form.get("file");

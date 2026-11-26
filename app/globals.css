@@ -45,6 +45,10 @@ body {
   .btn-stop { @apply bg-stop text-white hover:bg-[#951f18] focus-visible:outline-stop; }
   .btn-secondary { @apply border border-rule bg-sheet text-ink hover:border-ink-3; }
   .btn-quiet { @apply h-9 px-2 text-ink-2 hover:text-ink; }
+  /* Кнопки на цветной полосе вердикта */
+  .btn-band { @apply bg-white text-ink hover:bg-white/90 focus-visible:outline-white; }
+  .btn-band-ghost { @apply border border-white/70 text-white hover:bg-white/10 focus-visible:outline-white; }
+  .btn-lg { @apply h-12 px-5 text-[16px] font-semibold; }
   .input {
     @apply h-11 w-full rounded-md border border-rule bg-sheet px-3 text-[15px] placeholder:text-ink-3
       focus-visible:border-ink focus-visible:outline-none;

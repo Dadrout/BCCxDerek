@@ -35,8 +35,9 @@ async function run(s: Scenario) {
   if (s.sample) ({ fields, hints } = await extract(s.sample));
   return check(fields, hints);
 }
-const ids = (o: any): string[] => o.signals.map((x: any) => x.id);
-const sig = (o: any, id: string) => o.signals.find((x: any) => x.id === id);
+type Sig = { id: string; params: Record<string, unknown> };
+const ids = (o: { signals: Sig[] }): string[] => o.signals.map((x) => x.id);
+const sig = (o: { signals: Sig[] }, id: string) => o.signals.find((x) => x.id === id);
 
 describe("scenarios", () => {
   test("order and stage flags", () => {
@@ -71,7 +72,7 @@ describe("scenarios", () => {
     const o = await run(sc("new_to_you"));
     expect(o.verdict).toBe("stop");
     expect(o.main.id).toBe("crowd_mismatch");
-    expect(sig(o, "crowd_mismatch").params.count).toBe(TAU.otherClients);
+    expect(sig(o, "crowd_mismatch")?.params.count).toBe(TAU.otherClients);
     expect(ids(o)).toContain("owner_unknown");
     expect(ids(o)).toContain("first_payment");
     expect(o.contact ?? null).toBeNull();
@@ -91,7 +92,7 @@ describe("scenarios", () => {
     expect(fields.iban).toBe("");
     const o = await check(fields, hints);
     expect(o.kind).toBe("fix_fields");
-    expect(o.errors.some((e: any) => e.field === "iban" && e.code === "empty")).toBe(true);
+    expect(o.errors.some((e: { field: string; code: string }) => e.field === "iban" && e.code === "empty")).toBe(true);
   });
 
   test("manual → empty fields", () => {
@@ -102,7 +103,7 @@ describe("scenarios", () => {
     const o = await run(sc("known_new"));
     expect(o.verdict).toBe("ok");
     expect(o.main.id).toBe("crowd_confirms");
-    expect(sig(o, "crowd_confirms").params.count).toBe(ALTYN.otherClients);
+    expect(sig(o, "crowd_confirms")?.params.count).toBe(ALTYN.otherClients);
     expect(ids(o)).toContain("first_payment");
     expect(ids(o)).toContain("owner_unknown");
   });
