@@ -218,9 +218,11 @@ describe("one test per signal", () => {
     expect(ids(evaluate(dala, bank, opts))).not.toContain("nothing_to_compare");
   });
 
-  test("change_approved: reserved for task 4, never emitted by this engine", () => {
+  test("change_approved: emitted only for a matching approval, with DD.MM date and approver", () => {
     const approvals = [{ clientBin: CLIENT, bin: DALA_BIN, iban: DALA_IBAN2, approvedAt: "2026-11-26", approvedBy: "Сапарова А.К." }];
-    expect(ids(evaluate({ ...dala, iban: DALA_IBAN2 }, bank, { clientBin: CLIENT, approvals }))).not.toContain("change_approved");
+    expect(ids(evaluate({ ...dala, iban: DALA_IBAN2 }, bank, { clientBin: CLIENT, approvals }))).toContain("change_approved");
+    expect(ids(evaluate({ ...dala, iban: DALA_IBAN2 }, bank, opts))).not.toContain("change_approved");
+    expect(find(evaluate({ ...dala, iban: DALA_IBAN2 }, bank, { clientBin: CLIENT, approvals }), "change_approved")?.params).toEqual({ date: "26.11", by: "Сапарова А.К." });
   });
 
   test("first_payment: client never paid this BIN; not when it has", () => {

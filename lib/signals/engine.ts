@@ -110,9 +110,11 @@ export function evaluate(
   const start = historyStart();
   const history = (bank.paymentsBySupplier.get(p.bin) ?? []).filter((x) => x.date > start);
   const own = history.filter((x) => x.clientBin === opts.clientBin);
+  // Утверждённая смена реквизитов: ровно этот клиент + БИН + IBAN. Снимает только сигналы по истории платежей.
+  const approval = opts.approvals?.find((a) => a.clientBin === opts.clientBin && a.bin === p.bin && a.iban === p.iban);
   const ownHere = own.filter((x) => x.iban === p.iban).length;
   if (ownHere > 0) add("own_history_ok", { count: ownHere });
-  else if (own.length > 0) add("own_history_changed", { count: own.length });
+  else if (own.length > 0 && !approval) add("own_history_changed", { count: own.length });
   else add("first_payment");
 
   if (own.length > 0) {
@@ -125,7 +127,12 @@ export function evaluate(
   const crowdHere = distinctClients(others.filter((x) => x.iban === p.iban));
   const crowdElsewhere = distinctClients(others.filter((x) => x.iban !== p.iban));
   if (crowdHere > 0) add("crowd_confirms", { count: crowdHere });
-  else if (crowdElsewhere >= CROWD_MISMATCH_MIN) add("crowd_mismatch", { count: crowdElsewhere });
+  else if (crowdElsewhere >= CROWD_MISMATCH_MIN && !approval) add("crowd_mismatch", { count: crowdElsewhere });
+
+  if (approval) {
+    // approvedAt хранится как YYYY-MM-DD; в сигнале — ДД.ММ.
+    add("change_approved", { date: `${approval.approvedAt.slice(8, 10)}.${approval.approvedAt.slice(5, 7)}`, by: approval.approvedBy });
+  }
 
   // Документ и договор.
   if (opts.hints?.changeRequestText) add("change_request", { text: opts.hints.changeRequestText });
@@ -135,7 +142,7 @@ export function evaluate(
     add("phone_differs", { phone: docPhone, contractPhone: contract.phone });
   }
 
-  // Без единого подтверждения зелёного быть не может (change_approved появится в задаче 4).
+  // Без единого подтверждения зелёного быть не может (подтверждённая смена реквизитов тоже подтверждение).
   const hasOk = [...found.keys()].some((id) => SEVERITY[id] === "ok");
   if (!hasOk && !found.has("change_approved")) add("nothing_to_compare");
 
