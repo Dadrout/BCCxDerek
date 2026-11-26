@@ -31,9 +31,10 @@ function toBuffer(c: ArrayBuffer | Uint8Array | string): Buffer {
 export async function parseEml(buf: Buffer): Promise<ParsedEmail> {
   const e = await PostalMime.parse(buf);
   const authHeader = e.headers.find((h) => h.key === "authentication-results")?.value ?? "";
-  const att = e.attachments.find(
-    (a) => a.mimeType === "application/pdf" || (a.filename ?? "").toLowerCase().endsWith(".pdf"),
-  );
+  // Берём первое вложение, которое PDF по типу или имени И по содержимому (%PDF-): мусор пропускаем.
+  const att = e.attachments
+    .filter((a) => a.mimeType === "application/pdf" || (a.filename ?? "").toLowerCase().endsWith(".pdf"))
+    .find((a) => toBuffer(a.content).subarray(0, 5).toString("latin1") === "%PDF-");
   const text = e.text?.trim() ? e.text.trim() : e.html ? stripTags(e.html) : "";
   return {
     fromAddress: (e.from?.address ?? "").toLowerCase(),

@@ -35,7 +35,12 @@ function fromExtraction(extraction: Extraction): { fields: PaymentFields; hints:
 }
 
 async function handleEmail(buf: Buffer) {
-  const parsed = await parseEml(buf);
+  let parsed;
+  try {
+    parsed = await parseEml(buf);
+  } catch {
+    return NextResponse.json({ error: "Не удалось прочитать письмо", code: "bad_email" }, { status: 400 });
+  }
   const text = parsed.text.slice(0, MAX_EMAIL_TEXT);
   const { items, mode } = await findPressure(text);
   const email: EmailView = {

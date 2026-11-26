@@ -67,3 +67,30 @@ test("From без имени", async () => {
   expect(m.fromAddress).toBe("buh@dalatrans.kz");
   expect(m.fromName).toBe("");
 });
+
+test("мусорное .pdf-вложение пропускается, берётся настоящий PDF", async () => {
+  const junk = Buffer.from("not a pdf at all").toString("base64");
+  const eml = [
+    "From: buh@dalatrans-kz.com",
+    "Subject: x",
+    "MIME-Version: 1.0",
+    'Content-Type: multipart/mixed; boundary="b2"',
+    "",
+    "--b2",
+    'Content-Type: application/pdf; name="junk.pdf"',
+    'Content-Disposition: attachment; filename="junk.pdf"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    junk,
+    "--b2",
+    'Content-Type: application/pdf; name="real.pdf"',
+    'Content-Disposition: attachment; filename="real.pdf"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    pdfB64,
+    "--b2--",
+    "",
+  ].join("\r\n");
+  const m = await parseEml(Buffer.from(eml));
+  expect(m.pdf?.filename).toBe("real.pdf");
+});

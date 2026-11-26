@@ -215,5 +215,22 @@ describe("api", () => {
       expect(r2.status).toBe(400);
       expect((await r2.json()).code).toBe("not_pdf");
     });
+
+    test("eml with only a junk application/pdf attachment → 200 no_pdf_in_email", async () => {
+      process.env.DEREK_STAGE = "1";
+      const eml = [
+        "From: a@b.kz", "Subject: Hi", "MIME-Version: 1.0", 'Content-Type: multipart/mixed; boundary="b3"', "",
+        "--b3", "Content-Type: text/plain; charset=utf-8", "", "Счёт во вложении.",
+        "--b3", 'Content-Type: application/pdf; name="x.pdf"', "Content-Transfer-Encoding: base64", "", Buffer.from("junk junk").toString("base64"),
+        "--b3--", "",
+      ].join("\r\n");
+      const fd = new FormData();
+      fd.set("file", new File([eml], "a.eml", { type: "message/rfc822" }));
+      const r = await extractPOST(new Request("http://x/api/extract", { method: "POST", body: fd }));
+      expect(r.status).toBe(200);
+      const j = await r.json();
+      expect(j.code).toBe("no_pdf_in_email");
+      expect(j.pdfBase64).toBeNull();
+    });
   });
 });
