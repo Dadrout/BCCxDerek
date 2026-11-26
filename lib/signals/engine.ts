@@ -90,7 +90,7 @@ export function evaluate(
   }
 
   const complaint = bank.complaints.get(p.iban);
-  if (complaint && complaint.count > 0) add("iban_reported", { count: complaint.count, lastAt: complaint.lastAt });
+  if (complaint && complaint.count > 0) add("iban_reported", { count: complaint.count });
 
   if (p.hadHomoglyphs) add("homoglyphs");
 

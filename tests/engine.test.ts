@@ -137,7 +137,7 @@ describe("one test per signal", () => {
   test("iban_reported: complaints on this IBAN; not on a clean IBAN", () => {
     const b = build({ complaints: [{ iban: DALA_IBAN2, count: 3, lastAt: "2026-11-20" }] });
     const r = evaluate({ ...dala, iban: DALA_IBAN2 }, b, opts);
-    expect(find(r, "iban_reported")?.params).toMatchObject({ count: 3 });
+    expect(find(r, "iban_reported")?.params).toEqual({ count: 3 });
     expect(ids(evaluate(dala, b, opts))).not.toContain("iban_reported");
   });
 
