@@ -13,7 +13,12 @@ Embed Derek in a BCC Business "new payment" screen. The check runs on every paym
 
 - Email (.eml) check on branch feat/email-check: spec docs/superpowers/specs/2026-11-26-email-check-design.md, plan docs/superpowers/plans/2026-11-26-email-check.md; 5 tasks + final review fixes; 243 tests, tsc/lint/build clean; browser-checked (1280px, 375px, kk/ru)
 
+- Contract check (AI compares invoice/email with contract clauses, verbatim quotes, check level) + stage scenario «Оплата партнёру»: spec docs/superpowers/specs/2026-11-27-contract-check-design.md; 284 tests; browser-checked
+- Logo by Codex in public/brand, header and tab icon
+
 ## Next
+- Push the new commits on feat/email-check and open the PR
+- Run scenarios 05 and 06 once with Groq on (live AI path not exercised by tests)
 - Decide how to integrate feat/email-check (merge into feat/payment-screen / push + PR)
 - Update the pitch deck: 243 tests, 29 signals, email scenario, «где ИИ» slide (pressure in the email)
 - Demo note: in the email scenario click «Не подтвердил» (approval never lowers email signals)
